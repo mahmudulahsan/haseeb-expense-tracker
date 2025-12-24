@@ -1,0 +1,42 @@
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getSession } from "@/lib/auth";
+
+export async function getAccounts() {
+    const session = await getSession();
+    if (!session) throw new Error("Unauthorized");
+
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+        .from("accounts")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        console.error("Error fetching accounts:", error);
+        throw new Error("Failed to fetch accounts");
+    }
+
+    return data;
+}
+
+export async function getAccountTransactions(accountId: string) {
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+        .from("expenses")
+        .select(`
+            *,
+            categories (name, icon, color)
+        `)
+        .eq("account_id", accountId)
+        .order("date", { ascending: false });
+
+    if (error) {
+        console.error("Error fetching account transactions:", error);
+        throw new Error("Failed to fetch transactions");
+    }
+
+    return data;
+}

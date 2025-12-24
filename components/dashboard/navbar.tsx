@@ -1,0 +1,45 @@
+"use client";
+
+import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
+import {
+    LayoutDashboard,
+    PiggyBank,
+    BarChart3,
+    Settings,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const navItems = [
+    { icon: LayoutDashboard, label: "Home", tab: "home" },
+    { icon: BarChart3, label: "Statistic", tab: "statistic" },
+];
+
+export function Navbar() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const activeTab = searchParams.get("tab") || "home";
+
+    return (
+        <div className="hidden md:flex items-center gap-1 rounded-2xl bg-gray-100/50 dark:bg-white/5 p-1 relative z-20">
+            {navItems.map((item) => {
+                const isActive = activeTab === item.tab;
+                return (
+                    <button
+                        key={item.label}
+                        onClick={() => router.push(`/dashboard?tab=${item.tab}`)}
+                        className={cn(
+                            "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all cursor-pointer relative z-30",
+                            isActive
+                                ? "bg-black text-white dark:bg-white dark:text-black shadow-lg"
+                                : "text-gray-500 hover:text-black dark:hover:text-white"
+                        )}
+                    >
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
