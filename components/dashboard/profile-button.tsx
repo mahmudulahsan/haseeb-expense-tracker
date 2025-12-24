@@ -87,10 +87,10 @@ export function ProfileButton({ initialName }: ProfileButtonProps) {
 
                 <Tabs defaultValue="general" className="w-full flex-1 flex flex-col min-h-0">
                     <TabsList className="w-full justify-start rounded-none border-b bg-transparent px-8 h-12 gap-8 shrink-0">
-                        <TabsTrigger value="general" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-0 pb-3 font-bold text-muted-foreground data-[state=active]:text-primary transition-all">
+                        <TabsTrigger value="general" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 font-bold text-muted-foreground data-[state=active]:text-primary transition-all">
                             General
                         </TabsTrigger>
-                        <TabsTrigger value="security" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-0 pb-3 font-bold text-muted-foreground data-[state=active]:text-primary transition-all">
+                        <TabsTrigger value="security" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 font-bold text-muted-foreground data-[state=active]:text-primary transition-all">
                             Security
                         </TabsTrigger>
                     </TabsList>
