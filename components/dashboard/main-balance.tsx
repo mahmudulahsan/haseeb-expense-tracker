@@ -50,13 +50,13 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
 
     return (
         <div className="relative h-full">
-            <div className="absolute top-0 right-0 p-8 opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-500">
-                <Wallet className="h-48 w-48 rotate-12" />
+            <div className="absolute top-0 right-0 p-4 md:p-8 opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-500 overflow-hidden">
+                <Wallet className="h-32 w-32 md:h-48 md:w-48 rotate-12" />
             </div>
 
             <div className="relative z-10 flex flex-col justify-between h-full min-h-[300px]">
-                <div className="flex justify-between items-start">
-                    <div>
+                <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                    <div className="flex-1 w-full relative z-10">
                         <div className="mb-4">
                             <h3 className="text-2xl font-bold text-black/40 dark:text-white/40 tracking-tight">{greeting}</h3>
                         </div>
@@ -75,7 +75,7 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
                                         <Settings2 className="h-4 w-4 opacity-40 hover:opacity-100" />
                                     </button>
                                 </DialogTrigger>
-                                <DialogContent className="sm:max-w-[350px]">
+                                <DialogContent className="w-[90%] sm:max-w-[350px] rounded-[2rem] overflow-hidden">
                                     <DialogHeader>
                                         <DialogTitle>Filter Cash Balance</DialogTitle>
                                     </DialogHeader>
@@ -133,15 +133,18 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
                             </Dialog>
                         </div>
 
-                        <h2 className="text-6xl font-bold mt-6 tracking-tight text-black dark:text-white">
+                        <h2 className="text-4xl md:text-6xl font-bold mt-6 tracking-tight text-black dark:text-white break-words">
                             {currencySymbol}{displayBalance.toLocaleString()}
-                            <span className="text-2xl font-medium opacity-60 ml-2">.00</span>
+                            <span className="text-xl md:text-2xl font-medium opacity-60 ml-2">.00</span>
                         </h2>
                     </div>
-                    {children}
+                    {/* Floating Action Button for Mobile / Desktop */}
+                    <div className="absolute top-0 right-0 md:static md:block z-20">
+                        {children}
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-6 mt-12">
+                <div className="grid grid-cols-2 md:flex items-center gap-6 mt-12 relative z-10">
                     <div className="flex flex-col">
                         <span className="text-sm font-medium opacity-60 text-black dark:text-white uppercase tracking-wider">Selected</span>
                         <span className="text-xl font-bold text-black dark:text-white mt-1">

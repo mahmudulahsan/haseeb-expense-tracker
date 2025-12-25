@@ -182,7 +182,7 @@ export function AddTransactionDialog({ accounts, categories, currencySymbol = "$
                     <Plus className="h-8 w-8" />
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="w-[95%] sm:max-w-[425px] rounded-[2rem] p-6 max-h-[90vh] overflow-y-auto">
                 <DialogHeader className="flex flex-row items-center justify-between space-y-0 pr-12">
                     <DialogTitle>Add Transaction</DialogTitle>
                     <button

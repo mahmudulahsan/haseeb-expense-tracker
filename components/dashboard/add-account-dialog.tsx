@@ -66,7 +66,7 @@ export function AddAccountDialog() {
                     New Account
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="w-[95%] sm:max-w-[425px] rounded-[2rem] p-6 max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Add New Account</DialogTitle>
                 </DialogHeader>

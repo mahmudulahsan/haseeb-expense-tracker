@@ -89,7 +89,7 @@ export function ProfileButton({ initialName, initialCurrency }: ProfileButtonPro
                     </div>
                 </div>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden border-none bg-white dark:bg-[#0A0A0A] max-h-[90vh] flex flex-col shadow-2xl rounded-[2.5rem]">
+            <DialogContent className="w-[95%] sm:max-w-[425px] p-0 overflow-hidden border-none bg-white dark:bg-[#0A0A0A] max-h-[90vh] flex flex-col shadow-2xl rounded-[2.5rem]">
                 <DialogHeader className="p-8 pb-4 shrink-0">
                     <DialogTitle className="text-2xl font-black tracking-tight">Account Settings</DialogTitle>
                 </DialogHeader>

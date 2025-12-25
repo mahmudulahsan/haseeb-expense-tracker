@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { getProfile } from "@/services/profile";
 import { ProfileButton } from "@/components/dashboard/profile-button";
-import { VoiceTransactionButton } from "@/components/dashboard/voice-transaction-button";
+
 
 export default async function DashboardLayout({
     children,
@@ -51,7 +51,7 @@ export default async function DashboardLayout({
                                 className="bg-transparent border-none text-sm focus:ring-0 w-24 outline-none"
                             />
                         </div>
-                        <VoiceTransactionButton />
+
                         <ThemeToggle />
                         <Button variant="ghost" size="icon" className="rounded-full">
                             <Bell className="h-5 w-5" />
