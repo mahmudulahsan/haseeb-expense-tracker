@@ -1,10 +1,21 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
     title: "Haseeb - Premium Expense Tracker",
     description: "Track your expenses with style",
+    manifest: "/manifest.json",
+    icons: {
+        apple: "/icon-192.png",
+    },
+};
+
+export const viewport: Viewport = {
+    themeColor: "#f97316",
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
 };
 
 export default function RootLayout({
