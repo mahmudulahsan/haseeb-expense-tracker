@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:inf": "infisical run -- next dev --webpack",
-    "build": "next build",
+    "build": "next build --webpack",
+    "build:inf": "infisical run -- next build --webpack",
     "start": "next start",
     "lint": "next lint"
   },
