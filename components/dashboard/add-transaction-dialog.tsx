@@ -26,9 +26,10 @@ import { useEffect, useRef } from "react";
 interface AddTransactionDialogProps {
     accounts: any[];
     categories: any[];
+    currencySymbol?: string;
 }
 
-export function AddTransactionDialog({ accounts, categories }: AddTransactionDialogProps) {
+export function AddTransactionDialog({ accounts, categories, currencySymbol = "$" }: AddTransactionDialogProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [type, setType] = useState<"income" | "expense">("expense");
@@ -230,7 +231,7 @@ export function AddTransactionDialog({ accounts, categories }: AddTransactionDia
                             <div className="flex gap-2">
                                 <div className="flex-1 bg-white/50 dark:bg-black/20 px-2.5 py-1.5 rounded-xl border border-primary/5 flex items-center justify-between">
                                     <span className="text-[8px] uppercase font-bold opacity-40">Amt</span>
-                                    <span className="text-xs font-black text-primary">${aiResult.amount}</span>
+                                    <span className="text-xs font-black text-primary">{currencySymbol}{aiResult.amount}</span>
                                 </div>
                                 <div className="flex-1 bg-white/50 dark:bg-black/20 px-2.5 py-1.5 rounded-xl border border-primary/5 flex items-center justify-between overflow-hidden">
                                     <span className="text-[8px] uppercase font-bold opacity-40">Cat</span>
@@ -363,7 +364,7 @@ export function AddTransactionDialog({ accounts, categories }: AddTransactionDia
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium"
-                            placeholder="e.g. Starbucks Coffee"
+                            placeholder="e.g. Zakat, Sadaqah, or Eid Gifts"
                         />
 
                     </div>

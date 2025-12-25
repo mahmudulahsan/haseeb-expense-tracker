@@ -228,6 +228,7 @@ export async function updateProfile(formData: FormData) {
         .upsert({
             id: session.user.id,
             display_name: displayName,
+            currency: formData.get("currency"),
             email: session.user.email, // Include email to satisfy DB constraints
             updated_at: new Date().toISOString(),
         });

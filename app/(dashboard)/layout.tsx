@@ -56,7 +56,7 @@ export default async function DashboardLayout({
                         <Button variant="ghost" size="icon" className="rounded-full">
                             <Bell className="h-5 w-5" />
                         </Button>
-                        <ProfileButton initialName={profile?.display_name} />
+                        <ProfileButton initialName={profile?.display_name} initialCurrency={profile?.currency} />
                     </div>
                 </nav>
             </header>

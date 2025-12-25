@@ -17,9 +17,10 @@ import { cn } from "@/lib/utils";
 interface StatisticsContentProps {
     expenses: any[];
     categories: any[];
+    currencySymbol?: string;
 }
 
-export function StatisticsContent({ expenses, categories }: StatisticsContentProps) {
+export function StatisticsContent({ expenses, categories, currencySymbol = "$" }: StatisticsContentProps) {
     const stats = useMemo(() => {
         if (!expenses || expenses.length === 0) {
             return {
@@ -186,7 +187,7 @@ export function StatisticsContent({ expenses, categories }: StatisticsContentPro
                                     <div key={cat.name} className="space-y-2 group">
                                         <div className="flex justify-between items-end">
                                             <span className="text-sm font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">{cat.name}</span>
-                                            <span className="font-black text-lg">${cat.amount.toLocaleString()}</span>
+                                            <span className="font-black text-lg">{currencySymbol}{cat.amount.toLocaleString()}</span>
                                         </div>
                                         <div className="h-3 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
                                             <div
@@ -229,7 +230,7 @@ export function StatisticsContent({ expenses, categories }: StatisticsContentPro
                                                 <div className="absolute -top-14 left-1/2 -translate-x-1/2 pointer-events-none opacity-0 group-hover/bar:opacity-100 group-hover/bar:-top-16 transition-all duration-300 z-50">
                                                     <div className="bg-black/80 dark:bg-white/90 backdrop-blur-md text-white dark:text-black py-2 px-3 rounded-xl shadow-2xl flex flex-col items-center">
                                                         <span className="text-[10px] font-black uppercase tracking-tighter opacity-60">Spent</span>
-                                                        <span className="text-sm font-black whitespace-nowrap">${day.amount.toLocaleString()}</span>
+                                                        <span className="text-sm font-black whitespace-nowrap">{currencySymbol}{day.amount.toLocaleString()}</span>
                                                         {/* Arrow */}
                                                         <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black/80 dark:bg-white/90 rotate-45" />
                                                     </div>
@@ -260,7 +261,7 @@ export function StatisticsContent({ expenses, categories }: StatisticsContentPro
                         <h4 className="font-black text-xl">Smart Insight</h4>
                         <p className="text-sm text-muted-foreground mt-1">
                             Your biggest spending is on <span className="text-primary font-bold">"{stats.sortedCategories[0]?.name || 'N/A'}"</span>.
-                            Cutting this by 10% would save you <span className="font-bold">${((stats.sortedCategories[0]?.amount || 0) * 0.1).toFixed(2)}</span> monthly.
+                            Cutting this by 10% would save you <span className="font-bold">{currencySymbol}{((stats.sortedCategories[0]?.amount || 0) * 0.1).toFixed(2)}</span> monthly.
                         </p>
                     </div>
                 </Card>

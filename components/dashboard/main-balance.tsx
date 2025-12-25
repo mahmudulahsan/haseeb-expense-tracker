@@ -13,14 +13,17 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
+// ... imports
+
 interface MainBalanceProps {
     accounts: any[];
     categories: any[];
     greeting: string;
+    currencySymbol?: string;
     children: React.ReactNode; // For the AddTransactionDialog
 }
 
-export function MainBalance({ accounts, categories, greeting, children }: MainBalanceProps) {
+export function MainBalance({ accounts, categories, greeting, currencySymbol = "$", children }: MainBalanceProps) {
     // By default, all accounts are selected
     const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(
         accounts.map((acc) => acc.id)
@@ -97,7 +100,7 @@ export function MainBalance({ accounts, categories, greeting, children }: MainBa
                                                                 "font-bold text-sm",
                                                                 isSelected ? "text-primary" : "text-foreground"
                                                             )}>{acc.name}</span>
-                                                            <span className="text-xs opacity-50 font-medium">${Number(acc.balance).toLocaleString()}</span>
+                                                            <span className="text-xs opacity-50 font-medium">{currencySymbol}{Number(acc.balance).toLocaleString()}</span>
                                                         </div>
                                                         <div className={cn(
                                                             "h-6 w-6 rounded-full flex items-center justify-center transition-all",
@@ -131,7 +134,7 @@ export function MainBalance({ accounts, categories, greeting, children }: MainBa
                         </div>
 
                         <h2 className="text-6xl font-bold mt-6 tracking-tight text-black dark:text-white">
-                            ${displayBalance.toLocaleString()}
+                            {currencySymbol}{displayBalance.toLocaleString()}
                             <span className="text-2xl font-medium opacity-60 ml-2">.00</span>
                         </h2>
                     </div>
@@ -149,7 +152,7 @@ export function MainBalance({ accounts, categories, greeting, children }: MainBa
                     <div className="flex flex-col">
                         <span className="text-sm font-medium opacity-60 text-black dark:text-white uppercase tracking-wider">Total Net</span>
                         <span className="text-xl font-bold text-black dark:text-white mt-1">
-                            ${accounts.reduce((sum, acc) => sum + Number(acc.balance), 0).toLocaleString()}
+                            {currencySymbol}{accounts.reduce((sum, acc) => sum + Number(acc.balance), 0).toLocaleString()}
                         </span>
                     </div>
                 </div>

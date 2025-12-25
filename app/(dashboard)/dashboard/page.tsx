@@ -26,7 +26,7 @@ import {
     CreditCard
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, getCurrencySymbol } from "@/lib/utils";
 import { StatisticsContent } from "@/components/dashboard/statistics-content";
 import { getProfile } from "@/services/profile";
 
@@ -59,6 +59,8 @@ export default async function DashboardPage(props: {
         ? `Hey, ${profile.display_name}!`
         : "What should I call you?";
 
+    const currencySymbol = getCurrencySymbol(profile?.currency || "USD");
+
     const totalSpent = expenses
         .filter((e: any) => e.type === "expense")
         .reduce((acc: number, curr: any) => acc + curr.amount, 0);
@@ -71,7 +73,7 @@ export default async function DashboardPage(props: {
     const mainAccount = accounts[0] || { name: "No Account", balance: 0, type: "N/A" };
 
     if (activeTab === "statistic") {
-        return <StatisticsContent expenses={expenses} categories={categories} />;
+        return <StatisticsContent expenses={expenses} categories={categories} currencySymbol={currencySymbol} />;
     }
 
     return (
@@ -79,10 +81,10 @@ export default async function DashboardPage(props: {
             {/* Top Grid: Balance and Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Main Card (Primary Account) */}
-                <Card className="lg:col-span-8 bg-[#FFD966] dark:bg-amber-500/20 border-none shadow-xl overflow-hidden relative group">
+                <Card className="lg:col-span-8 bg-[#FFD966] dark:bg-primary/10 border-none shadow-xl overflow-hidden relative group">
                     <CardContent className="p-10">
-                        <MainBalance accounts={accounts} categories={categories} greeting={greeting}>
-                            <AddTransactionDialog accounts={accounts} categories={categories} />
+                        <MainBalance accounts={accounts} categories={categories} greeting={greeting} currencySymbol={currencySymbol}>
+                            <AddTransactionDialog accounts={accounts} categories={categories} currencySymbol={currencySymbol} />
                         </MainBalance>
                     </CardContent>
                 </Card>
@@ -91,14 +93,14 @@ export default async function DashboardPage(props: {
                 <div className="lg:col-span-4 flex flex-col gap-6">
                     <StatCard
                         title="Monthly Income"
-                        value={`$${totalIncome.toLocaleString()}`}
+                        value={`${currencySymbol}${totalIncome.toLocaleString()}`}
                         change="+12.5%"
                         icon={ArrowUpRight}
                         color="bg-emerald-500 text-white"
                     />
                     <StatCard
                         title="Monthly Outcome"
-                        value={`$${totalSpent.toLocaleString()}`}
+                        value={`${currencySymbol}${totalSpent.toLocaleString()}`}
                         change="+5.2%"
                         icon={ArrowDownRight}
                         color="bg-orange-500 text-white"
@@ -130,7 +132,7 @@ export default async function DashboardPage(props: {
                                 )}
                             >
                                 <div>
-                                    <h4 className="text-2xl font-bold">${Number(acc.balance).toLocaleString()}</h4>
+                                    <h4 className="text-2xl font-bold">{currencySymbol}{Number(acc.balance).toLocaleString()}</h4>
                                     <div className="flex items-center gap-2">
                                         <p className={cn(
                                             "text-xs font-semibold mt-1 uppercase tracking-wider",
@@ -189,7 +191,7 @@ export default async function DashboardPage(props: {
                                                 "font-black text-lg",
                                                 expense.type === 'income' ? "text-emerald-500" : "text-orange-500"
                                             )}>
-                                                {expense.type === 'income' ? '+' : '-'}${expense.amount.toFixed(2)}
+                                                {expense.type === 'income' ? '+' : '-'}{currencySymbol}{expense.amount.toFixed(2)}
                                             </p>
                                             <Badge variant="outline" className="text-[9px] uppercase tracking-tighter h-5 px-2">
                                                 {expense.type}

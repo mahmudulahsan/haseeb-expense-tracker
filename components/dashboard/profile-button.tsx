@@ -8,9 +8,16 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CircleUser, LogOut, Settings, User, KeyRound, ShieldCheck } from "lucide-react";
+import { CircleUser, LogOut, Settings, User, KeyRound, ShieldCheck, DollarSign } from "lucide-react";
 import { updateProfile, signUserOut } from "@/app/actions/finance";
 import { changePassword } from "@/app/actions/auth";
 import { useRouter } from "next/navigation";
@@ -18,12 +25,14 @@ import { cn } from "@/lib/utils";
 
 interface ProfileButtonProps {
     initialName?: string;
+    initialCurrency?: string;
 }
 
-export function ProfileButton({ initialName }: ProfileButtonProps) {
+export function ProfileButton({ initialName, initialCurrency }: ProfileButtonProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState(initialName || "");
+    const [currency, setCurrency] = useState(initialCurrency || "USD");
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
@@ -116,6 +125,31 @@ export function ProfileButton({ initialName }: ProfileButtonProps) {
                                             className="w-full h-14 bg-gray-50 dark:bg-white/5 border-none rounded-[1.25rem] pl-12 pr-4 focus:ring-2 focus:ring-primary outline-none font-medium transition-all"
                                             placeholder="Your Name"
                                         />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 ml-1">Currency</label>
+                                    <div className="relative">
+                                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                                        <input type="hidden" name="currency" value={currency} />
+                                        <Select value={currency} onValueChange={setCurrency}>
+                                            <SelectTrigger className="w-full h-14 bg-gray-50 dark:bg-white/5 border-none rounded-[1.25rem] pl-12 pr-4 focus:ring-2 focus:ring-primary outline-none font-medium transition-all">
+                                                <SelectValue placeholder="Select Currency" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="BDT">৳ BDT - Bangladeshi Taka</SelectItem>
+                                                <SelectItem value="USD">$ USD - US Dollar</SelectItem>
+                                                <SelectItem value="EUR">€ EUR - Euro</SelectItem>
+                                                <SelectItem value="GBP">£ GBP - British Pound</SelectItem>
+                                                <SelectItem value="JPY">¥ JPY - Japanese Yen</SelectItem>
+                                                <SelectItem value="INR">₹ INR - Indian Rupee</SelectItem>
+                                                <SelectItem value="AUD">$ AUD - Australian Dollar</SelectItem>
+                                                <SelectItem value="CAD">$ CAD - Canadian Dollar</SelectItem>
+                                                <SelectItem value="CNY">¥ CNY - Chinese Yuan</SelectItem>
+                                                <SelectItem value="PKR">Rs PKR - Pakistani Rupee</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
                                 <Button type="submit" disabled={loading} className="w-full h-14 rounded-[1.25rem] font-black shadow-xl shadow-primary/20 text-base">
