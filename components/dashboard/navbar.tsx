@@ -20,6 +20,14 @@ export function Navbar() {
     const router = useRouter();
     const activeTab = searchParams.get("tab") || "home";
 
+    const handleTabChange = (tab: string) => {
+        const url = new URL(window.location.href);
+        url.searchParams.set("tab", tab);
+        window.history.pushState({}, "", url.toString());
+        // Force update for components using useSearchParams
+        window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+
     return (
         <div className="hidden md:flex items-center gap-1 rounded-2xl bg-gray-100/50 dark:bg-white/5 p-1 relative z-20">
             {navItems.map((item) => {
@@ -27,7 +35,7 @@ export function Navbar() {
                 return (
                     <button
                         key={item.label}
-                        onClick={() => router.push(`/dashboard?tab=${item.tab}`)}
+                        onClick={() => handleTabChange(item.tab)}
                         className={cn(
                             "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all cursor-pointer relative z-30",
                             isActive

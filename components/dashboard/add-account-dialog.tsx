@@ -33,7 +33,7 @@ const ICONS = [
     { name: "Shield", icon: Shield },
 ];
 
-export function AddAccountDialog() {
+export function AddAccountDialog({ variant = 'full' }: { variant?: 'full' | 'compact' }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [selectedIcon, setSelectedIcon] = useState("Wallet");
@@ -61,10 +61,16 @@ export function AddAccountDialog() {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="w-full h-16 border-dashed border-2 rounded-[1.5rem] mt-2 gap-2 text-muted-foreground hover:text-primary hover:border-primary transition-all">
-                    <Plus className="h-5 w-5" />
-                    New Account
-                </Button>
+                {variant === 'compact' ? (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl bg-gray-100/50 dark:bg-white/5 hover:bg-primary/20 hover:text-primary transition-all">
+                        <Plus className="h-4 w-4" />
+                    </Button>
+                ) : (
+                    <Button variant="outline" className="w-full h-16 border-dashed border-2 rounded-[1.5rem] mt-2 gap-2 text-muted-foreground hover:text-primary hover:border-primary transition-all">
+                        <Plus className="h-5 w-5" />
+                        New Account
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="w-[95%] sm:max-w-[425px] rounded-[2rem] p-6 max-h-[90vh] overflow-y-auto">
                 <DialogHeader>

@@ -120,4 +120,19 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+
+  button,
+  [role="button"],
+  a,
+  label,
+  select,
+  summary,
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"],
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"] {
+    cursor: pointer;
+  }
 }

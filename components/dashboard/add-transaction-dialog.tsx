@@ -159,236 +159,261 @@ export function AddTransactionDialog({ accounts, categories, currencySymbol = "$
         const result = await createTransaction(formData);
 
         if (result.success) {
-            setOpen(false);
-            setSelectedAccount("");
-            setSelectedCategory("");
-            setAmount("");
-            setDescription("");
-            setAiResult(null);
-            setTranscript("");
+            handleOpenChange(false);
             router.refresh();
         } else {
-
             console.error(result.error);
             alert(result.error || "Failed to add transaction");
+            setLoading(false);
         }
-        setLoading(false);
     }
 
+    const handleOpenChange = (newOpen: boolean) => {
+        setOpen(newOpen);
+        if (!newOpen) {
+            // Reset all fields when modal closes
+            setAmount("");
+            setDescription("");
+            setDate(new Date().toISOString().split('T')[0]);
+            setSelectedAccount("");
+            setSelectedCategory("");
+            setAiResult(null);
+            setTranscript("");
+            setIsCreatingCategory(false);
+            setNewCategoryName("");
+            setType("expense");
+            setLoading(false);
+        }
+    };
+
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 <Button className="rounded-full h-14 w-14 shadow-xl shadow-primary/20 p-0">
                     <Plus className="h-8 w-8" />
                 </Button>
             </DialogTrigger>
-            <DialogContent className="w-[95%] sm:max-w-[425px] rounded-[2rem] p-6 max-h-[90vh] overflow-y-auto">
-                <DialogHeader className="flex flex-row items-center justify-between space-y-0 pr-12">
-                    <DialogTitle>Add Transaction</DialogTitle>
-                    <button
-                        type="button"
-                        onClick={toggleListening}
-                        disabled={isParsing}
-                        className={cn(
-                            "flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-[10px] font-black uppercase tracking-widest",
-                            isListening
-                                ? "bg-red-500 text-white animate-pulse"
-                                : "bg-primary/10 text-primary hover:bg-primary/20"
-                        )}
-                    >
-                        {isParsing ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                            <Mic className="h-3 w-3" />
-                        )}
-                        {isListening ? "Listening..." : isParsing ? "Analyzing..." : "Voice"}
-                    </button>
-                </DialogHeader>
-
-                {/* AI Preview Section */}
-                {(transcript || aiResult) && (
-                    <div className="bg-primary/5 rounded-2xl p-3 space-y-2 border border-primary/10 animate-in fade-in slide-in-from-top-2 overflow-hidden relative group">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-primary/60">
-                                <Sparkles className="h-3 w-3" /> AI Preview
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => { setAiResult(null); setTranscript(""); }}
-                                className="absolute top-2 right-2 h-5 w-5 rounded-full flex items-center justify-center hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100"
-                            >
-                                <X className="h-3 w-3 opacity-30" />
-                            </button>
-                        </div>
-
-                        {transcript && (
-                            <p className="text-[10px] italic text-muted-foreground line-clamp-1 pr-6">
-                                "{transcript}"
-                            </p>
-                        )}
-
-                        {aiResult && (
-                            <div className="flex gap-2">
-                                <div className="flex-1 bg-white/50 dark:bg-black/20 px-2.5 py-1.5 rounded-xl border border-primary/5 flex items-center justify-between">
-                                    <span className="text-[8px] uppercase font-bold opacity-40">Amt</span>
-                                    <span className="text-xs font-black text-primary">{currencySymbol}{aiResult.amount}</span>
-                                </div>
-                                <div className="flex-1 bg-white/50 dark:bg-black/20 px-2.5 py-1.5 rounded-xl border border-primary/5 flex items-center justify-between overflow-hidden">
-                                    <span className="text-[8px] uppercase font-bold opacity-40">Cat</span>
-                                    <span className="text-xs font-bold truncate max-w-[80px] text-right">{aiResult.category}</span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-
-                {/* Type Switcher */}
-                <div className="flex p-1 bg-gray-100 dark:bg-white/5 rounded-2xl mt-4">
-                    <button
-                        type="button"
-                        onClick={() => { setType("expense"); setIsCreatingCategory(false); setSelectedCategory(""); }}
-                        className={cn(
-                            "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all",
-                            type === "expense" ? "bg-white dark:bg-black shadow-sm text-orange-500" : "text-muted-foreground"
-                        )}
-                    >
-                        <ArrowDownCircle className="h-4 w-4" />
-                        Expense
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => { setType("income"); setIsCreatingCategory(false); setSelectedCategory(""); }}
-                        className={cn(
-                            "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all",
-                            type === "income" ? "bg-white dark:bg-black shadow-sm text-emerald-500" : "text-muted-foreground"
-                        )}
-                    >
-                        <ArrowUpCircle className="h-4 w-4" />
-                        Income
-                    </button>
+            <DialogContent className="w-[95%] sm:max-w-[425px] rounded-[2rem] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+                <div className="px-6 pt-6 pb-2 shrink-0">
+                    <DialogHeader className="flex flex-row items-center justify-between space-y-0 pr-12">
+                        <DialogTitle>Add Transaction</DialogTitle>
+                        <button
+                            type="button"
+                            onClick={toggleListening}
+                            disabled={isParsing}
+                            className={cn(
+                                "flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-[10px] font-black uppercase tracking-widest",
+                                isListening
+                                    ? "bg-red-500 text-white animate-pulse"
+                                    : "bg-primary/10 text-primary hover:bg-primary/20"
+                            )}
+                        >
+                            {isParsing ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                                <Mic className="h-3 w-3" />
+                            )}
+                            {isListening ? "Listening..." : isParsing ? "Analyzing..." : "Voice"}
+                        </button>
+                    </DialogHeader>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Amount</label>
-                        <input
-                            name="amount"
-                            type="number"
-                            step="0.01"
-                            required
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            className="w-full h-14 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 text-2xl font-black focus:ring-2 focus:ring-primary outline-none"
-                            placeholder="0.00"
-                        />
+                <div className="flex-1 overflow-y-auto px-6 pb-6">
+                    {/* AI Preview Section */}
+                    {(transcript || aiResult) && (
+                        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-[1.5rem] p-4 space-y-3 border border-primary/20 animate-in fade-in slide-in-from-top-4 duration-500 overflow-hidden relative group shadow-sm mt-2">
+                            {/* Decorative background glow */}
+                            <div className="absolute -right-4 -top-4 w-20 h-20 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all duration-700" />
 
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Account</label>
-                            <Select value={selectedAccount} onValueChange={setSelectedAccount} required>
-                                <SelectTrigger className="h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium">
-                                    <SelectValue placeholder="Select Account..." />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-2xl border-none shadow-2xl">
-                                    {accounts.map(acc => (
-                                        <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <input type="hidden" name="account_id" value={selectedAccount} required />
-                        </div>
-
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center mb-1">
-                                <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Category</label>
+                            <div className="flex items-center justify-between relative z-10">
+                                <div className="flex items-center gap-2">
+                                    <div className="h-6 w-6 rounded-lg bg-primary/20 flex items-center justify-center">
+                                        <Sparkles className="h-3.5 w-3.5 text-primary" />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">AI Preview</span>
+                                </div>
                                 <button
                                     type="button"
-                                    onClick={() => setIsCreatingCategory(!isCreatingCategory)}
-                                    className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline px-2 py-1 rounded-lg bg-primary/5"
+                                    onClick={() => { setAiResult(null); setTranscript(""); }}
+                                    className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                                 >
-                                    {isCreatingCategory ? <><X className="h-3 w-3" /> Cancel</> : <><Plus className="h-3 w-3" /> New Category</>}
+                                    <X className="h-3.5 w-3.5 opacity-40 hover:opacity-100" />
                                 </button>
                             </div>
 
-                            {isCreatingCategory ? (
-                                <div className="flex gap-2 animate-in fade-in zoom-in-95 duration-200">
-                                    <input
-                                        className="flex-1 h-12 bg-gray-100 dark:bg-white/5 border-2 border-primary/20 rounded-2xl px-4 text-sm focus:ring-2 focus:ring-primary outline-none font-medium"
-                                        placeholder="Category name..."
-                                        value={newCategoryName}
-                                        onChange={(e) => setNewCategoryName(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                                handleAddCategory();
-                                            }
-                                        }}
-                                        autoFocus
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleAddCategory}
-                                        disabled={loading || !newCategoryName}
-                                        className="bg-primary text-white h-12 w-12 rounded-2xl flex items-center justify-center hover:opacity-90 disabled:opacity-50 transition-opacity"
-                                    >
-                                        <Check className="h-5 w-5" />
-                                    </button>
+                            {transcript && (
+                                <p className="text-xs font-medium text-muted-foreground/80 italic leading-relaxed pl-1 border-l-2 border-primary/20 py-0.5">
+                                    "{transcript}"
+                                </p>
+                            )}
+
+                            {aiResult && (
+                                <div className="flex gap-3 relative z-10 pt-1">
+                                    <div className="flex-1 bg-white/80 dark:bg-black/40 backdrop-blur-sm px-3 py-2 rounded-2xl border border-primary/10 flex items-center justify-between shadow-sm">
+                                        <div className="flex flex-col">
+                                            <span className="text-[8px] uppercase font-black opacity-30 tracking-tighter">Amount</span>
+                                            <span className="text-sm font-black text-primary">{currencySymbol}{aiResult.amount}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 bg-white/80 dark:bg-black/40 backdrop-blur-sm px-3 py-2 rounded-2xl border border-primary/10 flex items-center justify-between shadow-sm overflow-hidden">
+                                        <div className="flex flex-col overflow-hidden w-full">
+                                            <span className="text-[8px] uppercase font-black opacity-30 tracking-tighter text-right">Category</span>
+                                            <span className="text-sm font-black truncate text-right">{aiResult.category}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                            ) : (
-                                <>
-                                    <Select value={selectedCategory} onValueChange={setSelectedCategory} required>
-                                        <SelectTrigger className="h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium">
-                                            <SelectValue placeholder="Select Category..." />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl border-none shadow-2xl max-h-[200px] overflow-y-auto">
-                                            {filteredCategories.map(cat => (
-                                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <input type="hidden" name="category_id" value={selectedCategory} required />
-                                </>
                             )}
                         </div>
+                    )}
+
+
+                    {/* Type Switcher */}
+                    <div className="flex p-1 bg-gray-100 dark:bg-white/5 rounded-2xl mt-4">
+                        <button
+                            type="button"
+                            onClick={() => { setType("expense"); setIsCreatingCategory(false); setSelectedCategory(""); }}
+                            className={cn(
+                                "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all",
+                                type === "expense" ? "bg-white dark:bg-black shadow-sm text-orange-500" : "text-muted-foreground"
+                            )}
+                        >
+                            <ArrowDownCircle className="h-4 w-4" />
+                            Expense
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setType("income"); setIsCreatingCategory(false); setSelectedCategory(""); }}
+                            className={cn(
+                                "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all",
+                                type === "income" ? "bg-white dark:bg-black shadow-sm text-emerald-500" : "text-muted-foreground"
+                            )}
+                        >
+                            <ArrowUpCircle className="h-4 w-4" />
+                            Income
+                        </button>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-                            Description <span className="text-[10px] opacity-40 lowercase">(Optional)</span>
-                        </label>
-                        <input
-                            name="description"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium"
-                            placeholder="e.g. Zakat, Sadaqah, or Eid Gifts"
-                        />
+                    <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Amount</label>
+                            <input
+                                name="amount"
+                                type="number"
+                                step="0.01"
+                                required
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                className="w-full h-14 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 text-2xl font-black focus:ring-2 focus:ring-primary outline-none"
+                                placeholder="0.00"
+                            />
 
-                    </div>
+                        </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Date</label>
-                        <input
-                            name="date"
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            required
-                            className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium"
-                        />
-                    </div>
+                        <div className="grid grid-cols-1 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Account</label>
+                                <Select value={selectedAccount} onValueChange={setSelectedAccount} required>
+                                    <SelectTrigger className="h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium">
+                                        <SelectValue placeholder="Select Account..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                        {accounts.map(acc => (
+                                            <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <input type="hidden" name="account_id" value={selectedAccount} required />
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Category</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCreatingCategory(!isCreatingCategory)}
+                                        className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline px-2 py-1 rounded-lg bg-primary/5"
+                                    >
+                                        {isCreatingCategory ? <><X className="h-3 w-3" /> Cancel</> : <><Plus className="h-3 w-3" /> New Category</>}
+                                    </button>
+                                </div>
+
+                                {isCreatingCategory ? (
+                                    <div className="flex gap-2 animate-in fade-in zoom-in-95 duration-200">
+                                        <input
+                                            className="flex-1 h-12 bg-gray-100 dark:bg-white/5 border-2 border-primary/20 rounded-2xl px-4 text-sm focus:ring-2 focus:ring-primary outline-none font-medium"
+                                            placeholder="Category name..."
+                                            value={newCategoryName}
+                                            onChange={(e) => setNewCategoryName(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleAddCategory();
+                                                }
+                                            }}
+                                            autoFocus
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleAddCategory}
+                                            disabled={loading || !newCategoryName}
+                                            className="bg-primary text-white h-12 w-12 rounded-2xl flex items-center justify-center hover:opacity-90 disabled:opacity-50 transition-opacity"
+                                        >
+                                            <Check className="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <Select value={selectedCategory} onValueChange={setSelectedCategory} required>
+                                            <SelectTrigger className="h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium">
+                                                <SelectValue placeholder="Select Category..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl border-none shadow-2xl max-h-[200px] overflow-y-auto">
+                                                {filteredCategories.map(cat => (
+                                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <input type="hidden" name="category_id" value={selectedCategory} required />
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                                Description <span className="text-[10px] opacity-40 lowercase">(Optional)</span>
+                            </label>
+                            <input
+                                name="description"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium"
+                                placeholder="e.g. Zakat, Sadaqah, or Eid Gifts"
+                            />
+
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Date</label>
+                            <input
+                                name="date"
+                                type="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                required
+                                className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium"
+                            />
+                        </div>
 
 
-                    <Button type="submit" disabled={loading} className={cn(
-                        "w-full h-14 text-lg font-bold shadow-xl transition-colors",
-                        type === "income" ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20" : "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
-                    )}>
-                        {loading ? "Saving..." : "Save Transaction"}
-                    </Button>
-                </form>
+                        <Button type="submit" disabled={loading} className={cn(
+                            "w-full h-14 text-lg font-bold shadow-xl transition-colors",
+                            type === "income" ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20" : "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
+                        )}>
+                            {loading ? "Saving..." : "Save Transaction"}
+                        </Button>
+                    </form>
+                </div>
             </DialogContent>
         </Dialog>
     );

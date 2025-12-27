@@ -167,7 +167,7 @@ export function ProfileButton({ initialName, initialCurrency }: ProfileButtonPro
                                 onClick={handleLogout}
                             >
                                 <LogOut className="h-5 w-5" />
-                                {loading && !name ? "Signing out..." : "Logout Account"}
+                                {loading && !name ? "Logging out..." : "Logout"}
                             </Button>
                         </TabsContent>
 
