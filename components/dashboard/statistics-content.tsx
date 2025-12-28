@@ -13,6 +13,7 @@ import {
     Trophy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AIInsights } from "./ai-insights";
 
 interface StatisticsContentProps {
     expenses: any[];
@@ -170,6 +171,13 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                 </Card>
             </div>
 
+            {/* AI Insights Section */}
+            <AIInsights
+                expenses={expenses}
+                categories={categories}
+                currencySymbol={currencySymbol}
+            />
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Spending by Category (Left 7) */}
                 <Card className="lg:col-span-12 border-none shadow-sm dark:bg-white/5">
@@ -255,13 +263,13 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="border-none shadow-sm dark:bg-white/5 p-8 flex items-center gap-6">
                     <div className="h-16 w-16 rounded-3xl bg-amber-500/10 flex items-center justify-center text-amber-600">
-                        <TrendingUp className="h-8 w-8" />
+                        <TrendingDown className="h-8 w-8" />
                     </div>
                     <div>
-                        <h4 className="font-black text-xl">Smart Insight</h4>
+                        <h4 className="font-black text-xl">Top Category</h4>
                         <p className="text-sm text-muted-foreground mt-1">
                             Your biggest spending is on <span className="text-primary font-bold">"{stats.sortedCategories[0]?.name || 'N/A'}"</span>.
-                            Cutting this by 10% would save you <span className="font-bold">{currencySymbol}{((stats.sortedCategories[0]?.amount || 0) * 0.1).toFixed(2)}</span> monthly.
+                            This accounts for <span className="font-bold">{((stats.sortedCategories[0]?.amount || 0) / (stats.totalExpense || 1) * 100).toFixed(1)}%</span> of your total journals.
                         </p>
                     </div>
                 </Card>

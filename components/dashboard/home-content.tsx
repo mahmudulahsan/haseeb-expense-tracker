@@ -168,7 +168,7 @@ export function HomeContent({
                         <AddAccountDialog variant="compact" />
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
-                        <div className="grid grid-cols-2 gap-3 max-h-[560px] overflow-y-auto no-scrollbar pr-1">
+                        <div className="grid grid-cols-2 gap-3 max-h-[560px] overflow-y-auto custom-scrollbar mask-scroller smooth-scroll pr-1">
                             {accounts.length === 0 ? (
                                 <div className="col-span-2 text-center py-12 opacity-30 italic text-sm">
                                     No accounts added yet.

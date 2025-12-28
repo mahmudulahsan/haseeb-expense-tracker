@@ -20,7 +20,7 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
     let lastDate = "";
 
     return (
-        <div className={cn("space-y-2 overflow-y-auto no-scrollbar pr-2")} style={{ maxHeight }}>
+        <div className={cn("space-y-2 overflow-y-auto custom-scrollbar mask-scroller smooth-scroll pr-2")} style={{ maxHeight }}>
             {expenses.map((expense: any) => {
                 const showDivider = expense.date !== lastDate;
                 lastDate = expense.date;

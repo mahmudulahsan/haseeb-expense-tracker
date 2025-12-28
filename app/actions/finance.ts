@@ -5,7 +5,7 @@ import { getSession, logout } from "@/lib/auth";
 import { accountSchema, transactionSchema } from "@/lib/validations/finance";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { parseTransactionWithAI } from "@/services/ai";
+import { parseTransactionWithAI, getSmartInsights } from "@/services/ai";
 
 
 export async function createAccount(formData: FormData) {
@@ -328,5 +328,77 @@ export async function parseVoiceTransaction(text: string) {
     } catch (error: any) {
         console.error("Parse voice error:", error);
         return { error: error.message || "Failed to parse voice" };
+    }
+}
+
+export async function generateInsights(expenses: any[], categories: any[], currencySymbol: string = "$", forceRefresh: boolean = false) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    try {
+        console.log("AI INSIGHTS: Request for user", session.user.id);
+
+        // 1. Check for existing insights in DB
+        const { data: existing, error: fetchError } = await supabase
+            .from("ai_insights")
+            .select("insights, created_at")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+
+        if (fetchError) {
+            console.error("AI INSIGHTS: Fetch error", fetchError.message);
+        }
+
+        if (existing && !fetchError && !forceRefresh) {
+            const lastGenerated = new Date(existing.created_at);
+            const now = new Date();
+            const diffInDays = (now.getTime() - lastGenerated.getTime()) / (1000 * 3600 * 24);
+
+            console.log(`AI INSIGHTS: Days since last generation: ${diffInDays.toFixed(2)}`);
+
+            if (diffInDays < 5) {
+                return {
+                    success: true,
+                    insights: existing.insights,
+                    source: "cache",
+                    lastUpdated: existing.created_at
+                };
+            }
+        }
+
+        // 2. Generate new insights
+        console.log("AI INSIGHTS: Fetching fresh AI analysis...");
+        const insights = await getSmartInsights(expenses, categories, currencySymbol);
+
+        // 3. Save/Update in DB
+        // We MUST specify onConflict: 'user_id' because user_id is our unique identifier for caching
+        const { error: saveError } = await supabase
+            .from("ai_insights")
+            .upsert({
+                user_id: session.user.id,
+                insights,
+                created_at: new Date().toISOString()
+            }, {
+                onConflict: "user_id"
+            });
+
+        if (saveError) {
+            console.error("AI INSIGHTS: SAVE ERROR ->", saveError.message);
+            // Return insights anyway so user sees them, but they won't be cached
+            return { success: true, insights, source: "ai-bypass-error", error: saveError.message };
+        }
+
+        console.log("AI INSIGHTS: Saved successfully to database");
+        return {
+            success: true,
+            insights,
+            source: "ai",
+            lastUpdated: new Date().toISOString()
+        };
+    } catch (error: any) {
+        console.error("AI INSIGHTS: CRITICAL ERROR", error);
+        return { error: error.message || "Failed to generate insights" };
     }
 }

@@ -29,7 +29,7 @@ export function Navbar() {
     };
 
     return (
-        <div className="hidden md:flex items-center gap-1 rounded-2xl bg-gray-100/50 dark:bg-white/5 p-1 relative z-20">
+        <div className="flex items-center gap-0.5 sm:gap-1 rounded-2xl bg-gray-100/50 dark:bg-white/5 p-1 relative z-20">
             {navItems.map((item) => {
                 const isActive = activeTab === item.tab;
                 return (
@@ -37,14 +37,14 @@ export function Navbar() {
                         key={item.label}
                         onClick={() => handleTabChange(item.tab)}
                         className={cn(
-                            "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all cursor-pointer relative z-30",
+                            "flex items-center gap-2 rounded-xl px-2.5 py-1.5 sm:px-4 sm:py-2 text-sm font-medium transition-all cursor-pointer relative z-30",
                             isActive
                                 ? "bg-black text-white dark:bg-white dark:text-black shadow-lg"
                                 : "text-gray-500 hover:text-black dark:hover:text-white"
                         )}
                     >
                         <item.icon className="h-4 w-4" />
-                        {item.label}
+                        <span className="hidden sm:inline-block">{item.label}</span>
                     </button>
                 );
             })}
