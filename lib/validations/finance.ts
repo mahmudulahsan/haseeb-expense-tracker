@@ -15,7 +15,7 @@ export const transactionSchema = z.object({
     category_id: z.string().uuid("Invalid category"),
     account_id: z.string().uuid("Invalid account"),
     type: z.enum(["income", "expense"]),
-    description: z.string().max(255).optional().or(z.literal("")),
+    description: z.string().max(1000).optional().or(z.literal("")),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
 });
 
