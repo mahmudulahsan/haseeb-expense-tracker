@@ -6,6 +6,7 @@ import { accountSchema, transactionSchema } from "@/lib/validations/finance";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseTransactionWithAI, getSmartInsights } from "@/services/ai";
+import { encrypt, decrypt } from "@/lib/crypto";
 
 
 export async function createAccount(formData: FormData) {
@@ -69,6 +70,14 @@ export async function createTransaction(formData: FormData) {
     }
 
     const transaction = validatedFields.data;
+    const originalAmount = transaction.amount;
+
+    // Encrypt sensitive fields
+    if (transaction.description) {
+        transaction.description = encrypt(transaction.description);
+    }
+    // Encrypt amount for DB storage (cast to any to bypass type check for insertion)
+    (transaction as any).amount = encrypt(originalAmount);
 
     // 1. Get current account balance
     const { data: account, error: accFetchError } = await supabase
@@ -94,8 +103,8 @@ export async function createTransaction(formData: FormData) {
 
     // 3. Update balance
     const newBalance = transaction.type === "income"
-        ? account.balance + transaction.amount
-        : account.balance - transaction.amount;
+        ? account.balance + originalAmount
+        : account.balance - originalAmount;
 
     const { error: updateError } = await supabase
         .from("accounts")
@@ -169,9 +178,10 @@ export async function deleteTransaction(id: string) {
             .single();
 
         if (account) {
+            const amount = Number(decrypt(tx.amount));
             const newBalance = tx.type === "income"
-                ? Number(account.balance) - Number(tx.amount)
-                : Number(account.balance) + Number(tx.amount);
+                ? Number(account.balance) - amount
+                : Number(account.balance) + amount;
 
             await supabase
                 .from("accounts")

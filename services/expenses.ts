@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
+import { decrypt } from "@/lib/crypto";
 
 export async function getExpenses() {
     const session = await getSession();
@@ -25,7 +26,12 @@ export async function getExpenses() {
         throw new Error("Failed to fetch expenses");
     }
 
-    return data;
+    // Decrypt sensitive fields
+    return data.map((expense: any) => ({
+        ...expense,
+        description: expense.description ? decrypt(expense.description) : expense.description,
+        amount: expense.amount ? Number(decrypt(expense.amount.toString())) : expense.amount
+    }));
 }
 
 export async function getCategories() {
