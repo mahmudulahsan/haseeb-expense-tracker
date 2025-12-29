@@ -168,7 +168,7 @@ export function HomeContent({
                         <AddAccountDialog variant="compact" />
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
-                        <div className="grid grid-cols-2 gap-3 max-h-[560px] overflow-y-auto custom-scrollbar mask-scroller smooth-scroll pr-1">
+                        <div className="grid grid-cols-2 gap-3 max-h-[560px] overflow-y-auto custom-scrollbar smooth-scroll pr-1">
                             {accounts.length === 0 ? (
                                 <div className="col-span-2 text-center py-12 opacity-30 italic text-sm">
                                     No accounts added yet.
@@ -225,7 +225,7 @@ export function HomeContent({
 
                 {/* Recent Ledger (Bento Middle) */}
                 <Card className={cn(
-                    "border-none shadow-sm lg:col-span-2 transition-all duration-500",
+                    "border-none shadow-sm lg:col-span-2 transition-all duration-500 dark:bg-white/5",
                     query && "ring-2 ring-primary ring-offset-2 dark:ring-offset-black shadow-2xl scale-[1.01]"
                 )}>
 

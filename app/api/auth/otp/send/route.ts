@@ -47,7 +47,7 @@ export async function POST(request: Request) {
         // 3. Send via Resend
         try {
             await resend.emails.send({
-                from: "Haseeb <onboarding@resend.dev>",
+                from: "Haseeb <no-reply@ndevers.com>",
                 to: email,
                 subject: "Your Login Code - Haseeb",
                 html: `
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
                             <h2 style="margin-top: 20px; color: #111;">Welcome to Haseeb</h2>
                             <p style="color: #666;">Experience the premium expense tracking</p>
                         </div>
-                        <p style="font-size: 16px; line-height: 1.6;">Your magic login code is:</p>
+                        <p style="font-size: 16px; line-height: 1.6;">Your OTP:</p>
                         <div style="background: #fdfdfd; border: 2px dashed #FF5722; padding: 20px; text-align: center; border-radius: 15px; margin: 30px 0;">
                             <h1 style="color: #FF5722; font-size: 48px; letter-spacing: 15px; margin: 0; font-family: monospace;">${code}</h1>
                         </div>
