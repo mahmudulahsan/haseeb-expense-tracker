@@ -32,15 +32,13 @@ export default async function DashboardLayout({
             {/* Premium Floating Header */}
             <header className="sticky top-6 z-50 mx-auto w-[95%] max-w-7xl px-4 mb-4">
                 <nav className="flex items-center rounded-[2.5rem] bg-white/80 dark:bg-black/80 px-2 sm:px-4 py-2 sm:py-3 shadow-sm backdrop-blur-xl border border-white/20">
-                    <div className="flex-1 flex items-center gap-2 pl-2 sm:pl-4">
-                        <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-2xl bg-primary text-white shrink-0">
-                            <PiggyBank className="h-5 w-5 sm:h-6 w-6" />
+                    <div className="flex-1 flex items-center gap-4 pl-2 sm:pl-4">
+                        <div className="flex items-center gap-2">
+                            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-2xl bg-primary text-white shrink-0">
+                                <PiggyBank className="h-5 w-5 sm:h-6 w-6" />
+                            </div>
+                            <span className="text-lg sm:text-xl font-bold tracking-tight hidden min-[400px]:block">Haseeb</span>
                         </div>
-                        <span className="text-lg sm:text-xl font-bold tracking-tight hidden min-[400px]:block">Haseeb</span>
-                    </div>
-
-                    {/* Center Nav Items */}
-                    <div className="flex-shrink-0">
                         <Navbar />
                     </div>
 

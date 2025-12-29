@@ -65,7 +65,7 @@ export function SearchBar() {
                             <Search className={`h-5 w-5 ${isPending ? "text-primary animate-pulse" : "text-gray-400"}`} />
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="w-[95%] sm:max-w-[425px] rounded-[2.5rem] p-6 border-none shadow-2xl bg-white/95 dark:bg-black/95 backdrop-blur-xl gap-4">
+                    <DialogContent className="w-[95%] sm:max-w-[425px] rounded-[2.5rem] p-6 border-none shadow-2xl bg-white dark:bg-white/5 backdrop-blur-xl gap-4">
                         <DialogHeader>
                             <DialogTitle className="text-xs font-black uppercase tracking-[0.2em] text-primary">Search Transactions</DialogTitle>
                         </DialogHeader>

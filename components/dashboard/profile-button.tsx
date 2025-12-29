@@ -89,7 +89,7 @@ export function ProfileButton({ initialName, initialCurrency }: ProfileButtonPro
                     </div>
                 </div>
             </DialogTrigger>
-            <DialogContent className="w-[95%] sm:max-w-[425px] p-0 overflow-hidden border-none bg-white dark:bg-[#0A0A0A] max-h-[90vh] flex flex-col shadow-2xl rounded-[2.5rem]">
+            <DialogContent className="w-[95%] sm:max-w-[425px] p-0 overflow-hidden border-none bg-white dark:bg-white/5 max-h-[90vh] flex flex-col shadow-2xl rounded-[2.5rem]">
                 <DialogHeader className="p-8 pb-4 shrink-0">
                     <DialogTitle className="text-2xl font-black tracking-tight">Account Settings</DialogTitle>
                 </DialogHeader>
@@ -104,7 +104,7 @@ export function ProfileButton({ initialName, initialCurrency }: ProfileButtonPro
                         </TabsTrigger>
                     </TabsList>
 
-                    <div className="flex-1 overflow-y-auto p-8 scrollbar-none scroll-smooth">
+                    <div className="flex-1 overflow-y-auto pr-8 pl-8 pb-8 pt-4 scrollbar-none scroll-smooth">
                         {error && (
                             <div className="mb-6 rounded-xl bg-red-500/10 p-3 text-sm font-bold text-red-500 border border-red-500/20 animate-in shake-in">
                                 {error}

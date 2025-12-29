@@ -162,7 +162,7 @@ export function Calculator() {
                     <CalcIcon className="h-5 w-5" />
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-[320px] rounded-[2.5rem] p-6 border-none shadow-2xl bg-white/95 dark:bg-zinc-900 backdrop-blur-xl gap-4">
+            <DialogContent className="max-w-[320px] rounded-[2.5rem] p-6 border-none shadow-2xl bg-white dark:bg-white/5 backdrop-blur-xl gap-4">
                 <DialogHeader className="flex flex-row items-center justify-between space-y-0 pr-10">
                     <div className="flex items-center gap-2">
                         <div className="h-8 w-8 rounded-xl bg-primary/20 flex items-center justify-center">

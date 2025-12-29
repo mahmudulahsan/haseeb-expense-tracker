@@ -21,6 +21,7 @@ import { createTransaction, createCategory, parseVoiceTransaction } from "@/app/
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 
 interface AddTransactionDialogProps {
@@ -189,9 +190,29 @@ export function AddTransactionDialog({ accounts, categories, currencySymbol = "$
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button className="rounded-full h-14 w-14 shadow-xl shadow-primary/20 p-0">
-                    <Plus className="h-8 w-8" />
-                </Button>
+                <motion.button
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={cn(
+                        "group relative flex items-center gap-2 px-5 py-3 rounded-2xl transition-all duration-300",
+                        "bg-white dark:bg-black/40 backdrop-blur-md shadow-lg hover:shadow-2xl border border-white/50 dark:border-white/10"
+                    )}
+                >
+                    {/* Pulsing background effect */}
+                    <div className="absolute inset-0 rounded-2xl bg-primary/20 animate-pulse group-hover:bg-primary/30 transition-colors" />
+
+                    <div className="relative flex items-center gap-2">
+                        <motion.div
+                            animate={{ rotate: open ? 45 : 0 }}
+                            className="h-8 w-8 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/30"
+                        >
+                            <Plus className="h-5 w-5" />
+                        </motion.div>
+                        <span className="hidden sm:block text-sm font-black uppercase tracking-widest text-primary pr-1">
+                            Add Transaction
+                        </span>
+                    </div>
+                </motion.button>
             </DialogTrigger>
             <DialogContent className="w-[95%] sm:max-w-[425px] rounded-[2rem] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
                 <div className="px-6 pt-6 pb-2 shrink-0">

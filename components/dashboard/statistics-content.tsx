@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AIInsights } from "./ai-insights";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 
 interface StatisticsContentProps {
     expenses: any[];
@@ -21,7 +22,38 @@ interface StatisticsContentProps {
     currencySymbol?: string;
 }
 
+const containerVariants: Variants = {
+    visible: {
+        transition: {
+            staggerChildren: 0.05
+        }
+    }
+};
+
+const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.4, ease: "easeOut" }
+    }
+};
+
 export function StatisticsContent({ expenses, categories, currencySymbol = "$" }: StatisticsContentProps) {
+    // Time period filter state with localStorage persistence
+    const [timePeriod, setTimePeriod] = useState<'weekly' | 'monthly' | 'yearly'>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('statsTimePeriod');
+            return (saved as 'weekly' | 'monthly' | 'yearly') || 'weekly';
+        }
+        return 'weekly';
+    });
+
+    // Save time period to localStorage
+    useEffect(() => {
+        localStorage.setItem('statsTimePeriod', timePeriod);
+    }, [timePeriod]);
+
     const stats = useMemo(() => {
         if (!expenses || expenses.length === 0) {
             return {
@@ -34,7 +66,19 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                     amount: 0,
                     date: ""
                 })),
-                maxWeekly: 1
+                monthlyData: Array.from({ length: 30 }).map((_, i) => ({
+                    day: (i + 1).toString(),
+                    amount: 0,
+                    date: ""
+                })),
+                yearlyData: Array.from({ length: 12 }).map((_, i) => ({
+                    day: new Date(0, i).toLocaleDateString('en-US', { month: 'short' }),
+                    amount: 0,
+                    date: ""
+                })),
+                maxWeekly: 1,
+                maxMonthly: 1,
+                maxYearly: 1
             };
         }
         const now = new Date();
@@ -115,77 +159,166 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
 
         const maxWeekly = Math.max(...weeklyData.map(d => d.amount), 1);
 
+        // 4. Monthly Data (Last 30 days)
+        const monthlyData = Array.from({ length: 30 }).map((_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (29 - i));
+            const dateStr = d.toISOString().split('T')[0];
+            const dayAmount = expenses
+                .filter(e => e.date === dateStr && e.type === 'expense')
+                .reduce((acc, curr) => acc + Number(curr.amount), 0);
+            return {
+                day: d.getDate().toString(),
+                amount: dayAmount,
+                date: dateStr
+            };
+        });
+
+        const maxMonthly = Math.max(...monthlyData.map(d => d.amount), 1);
+
+        // 5. Yearly Data (Last 12 months)
+        const yearlyData = Array.from({ length: 12 }).map((_, i) => {
+            const d = new Date();
+            d.setMonth(d.getMonth() - (11 - i));
+            const year = d.getFullYear();
+            const month = d.getMonth();
+            const monthAmount = expenses
+                .filter(e => {
+                    const expDate = new Date(e.date);
+                    return expDate.getFullYear() === year && expDate.getMonth() === month && e.type === 'expense';
+                })
+                .reduce((acc, curr) => acc + Number(curr.amount), 0);
+            return {
+                day: d.toLocaleDateString('en-US', { month: 'short' }),
+                amount: monthAmount,
+                date: `${year}-${(month + 1).toString().padStart(2, '0')}`
+            };
+        });
+
+        const maxYearly = Math.max(...yearlyData.map(d => d.amount), 1);
+
         return {
             sortedCategories,
             totalExpense,
             currentStreak,
             longestStreak,
             weeklyData,
-            maxWeekly
+            monthlyData,
+            yearlyData,
+            maxWeekly,
+            maxMonthly,
+            maxYearly
         };
     }, [expenses]);
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-8"
+        >
             {/* Top Row: Streaks & Quick Insights */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="bg-orange-500 text-white border-none shadow-xl relative overflow-hidden group">
-                    <div className="absolute -right-4 -bottom-4 opacity-20 group-hover:scale-110 transition-transform">
-                        <Flame className="h-32 w-32" />
-                    </div>
-                    <CardContent className="p-6 relative z-10">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Badge className="bg-white/20 border-none text-white">Daily Streak</Badge>
-                        </div>
-                        <h3 className="text-4xl font-black">{stats.currentStreak} Days</h3>
-                        <p className="text-white/70 text-sm mt-1 font-medium italic">You're on fire! Keep tracking daily.</p>
-                    </CardContent>
-                </Card>
+                <motion.div variants={itemVariants}>
+                    <Card className="bg-orange-500 text-white border-none shadow-xl relative overflow-hidden group h-full">
+                        <motion.div
+                            initial={{ rotate: 0 }}
+                            whileHover={{ rotate: 12, scale: 1.1 }}
+                            className="absolute -right-4 -bottom-4 opacity-20 pointer-events-none"
+                        >
+                            <Flame className="h-32 w-32" />
+                        </motion.div>
+                        <CardContent className="p-6 relative z-10">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Badge className="bg-white/20 border-none text-white">Daily Streak</Badge>
+                            </div>
+                            <h3 className="text-4xl font-black">{stats.currentStreak} Days</h3>
+                            <p className="text-white/70 text-sm mt-1 font-medium italic">You're on fire! Keep tracking daily.</p>
+                        </CardContent>
+                    </Card>
+                </motion.div>
 
-                <Card className="bg-indigo-600 text-white border-none shadow-xl relative overflow-hidden group">
-                    <div className="absolute -right-4 -bottom-4 opacity-20 group-hover:scale-110 transition-transform">
-                        <Trophy className="h-32 w-32" />
-                    </div>
-                    <CardContent className="p-6 relative z-10">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Badge className="bg-white/20 border-none text-white">All Time Best</Badge>
-                        </div>
-                        <h3 className="text-4xl font-black">{stats.longestStreak} Days</h3>
-                        <p className="text-white/70 text-sm mt-1 font-medium italic">Your record for consistent logging.</p>
-                    </CardContent>
-                </Card>
+                <motion.div variants={itemVariants}>
+                    <Card className="bg-indigo-600 text-white border-none shadow-xl relative overflow-hidden group h-full">
+                        <motion.div
+                            initial={{ rotate: 0 }}
+                            whileHover={{ rotate: 12, scale: 1.1 }}
+                            className="absolute -right-4 -bottom-4 opacity-20 pointer-events-none"
+                        >
+                            <Trophy className="h-32 w-32" />
+                        </motion.div>
+                        <CardContent className="p-6 relative z-10">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Badge className="bg-white/20 border-none text-white">All Time Best</Badge>
+                            </div>
+                            <h3 className="text-4xl font-black">{stats.longestStreak} Days</h3>
+                            <p className="text-white/70 text-sm mt-1 font-medium italic">Your record for consistent logging.</p>
+                        </CardContent>
+                    </Card>
+                </motion.div>
 
-                <Card className="bg-emerald-600 text-white border-none shadow-xl relative overflow-hidden group">
-                    <div className="absolute -right-4 -bottom-4 opacity-20 group-hover:scale-110 transition-transform">
-                        <Target className="h-32 w-32" />
-                    </div>
-                    <CardContent className="p-6 relative z-10">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Badge className="bg-white/20 border-none text-white">Reliability Score</Badge>
-                        </div>
-                        <h3 className="text-4xl font-black">
-                            {expenses.length > 0 ? Math.min(100, Math.round((stats.currentStreak / 30) * 100)) : 0}%
-                        </h3>
-                        <p className="text-white/70 text-sm mt-1 font-medium italic">Consistency over the last 30 days.</p>
-                    </CardContent>
-                </Card>
+                <motion.div variants={itemVariants}>
+                    <Card className="bg-emerald-600 text-white border-none shadow-xl relative overflow-hidden group h-full">
+                        <motion.div
+                            initial={{ rotate: 0 }}
+                            whileHover={{ rotate: 12, scale: 1.1 }}
+                            className="absolute -right-4 -bottom-4 opacity-20 pointer-events-none"
+                        >
+                            <Target className="h-32 w-32" />
+                        </motion.div>
+                        <CardContent className="p-6 relative z-10">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Badge className="bg-white/20 border-none text-white">Reliability Score</Badge>
+                            </div>
+                            <h3 className="text-4xl font-black">
+                                {expenses.length > 0 ? Math.min(100, Math.round((stats.currentStreak / 30) * 100)) : 0}%
+                            </h3>
+                            <p className="text-white/70 text-sm mt-1 font-medium italic">Consistency over the last 30 days.</p>
+                        </CardContent>
+                    </Card>
+                </motion.div>
             </div>
 
             {/* AI Insights Section */}
-            <AIInsights
-                expenses={expenses}
-                categories={categories}
-                currencySymbol={currencySymbol}
-            />
+            <motion.div variants={itemVariants}>
+                <AIInsights
+                    expenses={expenses}
+                    categories={categories}
+                    currencySymbol={currencySymbol}
+                />
+            </motion.div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Spending by Category (Left 7) */}
-                <Card className="lg:col-span-12 border-none shadow-sm dark:bg-white/5">
-                    <CardHeader>
+            <motion.div variants={itemVariants}>
+                <Card className="border-none shadow-sm dark:bg-white/5">
+                    <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
                         <CardTitle className="flex items-center gap-2">
                             <Zap className="h-5 w-5 text-primary" />
                             Spending Distribution
                         </CardTitle>
+                        <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-white/5 p-1 rounded-xl">
+                            {['weekly', 'monthly', 'yearly'].map((p) => (
+                                <button
+                                    key={p}
+                                    onClick={() => setTimePeriod(p as any)}
+                                    className={cn(
+                                        "px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all relative overflow-hidden",
+                                        timePeriod === p
+                                            ? "text-white"
+                                            : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    {timePeriod === p && (
+                                        <motion.div
+                                            layoutId="activeTab"
+                                            className="absolute inset-0 bg-primary shadow-lg"
+                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                        />
+                                    )}
+                                    <span className="relative z-10">{p}</span>
+                                </button>
+                            ))}
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
@@ -198,12 +331,14 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                                             <span className="font-black text-lg">{currencySymbol}{cat.amount.toLocaleString()}</span>
                                         </div>
                                         <div className="h-3 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                                            <div
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${(cat.amount / stats.totalExpense) * 100}%` }}
+                                                transition={{ duration: 1, ease: "easeOut", delay: 0.2 + (i * 0.1) }}
                                                 className={cn(
-                                                    "h-full rounded-full transition-all duration-1000 ease-out",
+                                                    "h-full rounded-full",
                                                     i === 0 ? "bg-primary" : "bg-primary/40"
                                                 )}
-                                                style={{ width: `${(cat.amount / stats.totalExpense) * 100}%` }}
                                             />
                                         </div>
                                     </div>
@@ -211,82 +346,111 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                             </div>
 
                             {/* Weekly Trend Visual */}
-                            <div className="bg-gray-50/50 dark:bg-black/40 rounded-[2.5rem] p-8 border border-gray-100/50 dark:border-white/5 shadow-inner">
+                            <div className="bg-gray-50/50 dark:bg-black/40 rounded-[2.5rem] p-8 border border-gray-100/50 dark:border-white/5 shadow-inner overflow-hidden">
                                 <h4 className="text-sm font-bold uppercase tracking-widest opacity-40 mb-10 flex items-center gap-2">
                                     <Calendar className="h-4 w-4" />
-                                    Weekly Activity
+                                    {timePeriod === 'weekly' ? 'Weekly Activity' : timePeriod === 'monthly' ? 'Monthly Activity (30 Days)' : 'Yearly Activity (12 Months)'}
                                 </h4>
-                                <div className="flex items-end justify-between h-48 gap-3">
-                                    {stats.weeklyData.map((day) => (
-                                        <div key={day.date} className="flex-1 flex flex-col items-center gap-4 group/bar h-full">
-                                            <div className="relative w-full flex justify-center items-end h-full">
-                                                {/* Premium Bar */}
-                                                <div
-                                                    className={cn(
-                                                        "w-full rounded-t-2xl transition-all duration-500 cursor-pointer relative",
-                                                        day.amount === stats.maxWeekly
-                                                            ? "bg-gradient-to-t from-primary to-orange-400 shadow-[0_-10px_30px_-10px_rgba(255,165,0,0.5)]"
-                                                            : "bg-gray-200 dark:bg-white/10 group-hover/bar:bg-primary/40"
-                                                    )}
-                                                    style={{ height: `${Math.max((day.amount / stats.maxWeekly) * 100, 5)}%` }}
-                                                >
-                                                    {/* Hover Glow */}
-                                                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/bar:opacity-100 transition-opacity rounded-t-2xl" />
-                                                </div>
+                                <div className={cn(
+                                    "flex items-end justify-between h-48",
+                                    timePeriod === 'weekly' ? "gap-3" : timePeriod === 'monthly' ? "gap-1" : "gap-2"
+                                )}>
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={timePeriod}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="flex items-end justify-between w-full h-full"
+                                        >
+                                            {(timePeriod === 'weekly' ? stats.weeklyData : timePeriod === 'monthly' ? stats.monthlyData : stats.yearlyData).map((day, dIdx) => {
+                                                const maxValue = timePeriod === 'weekly' ? stats.maxWeekly : timePeriod === 'monthly' ? stats.maxMonthly : stats.maxYearly;
+                                                const isMax = day.amount === maxValue;
+                                                return (
+                                                    <div key={day.date} className="flex-1 flex flex-col items-center gap-4 group/bar h-full">
+                                                        <div className="relative w-full flex justify-center items-end h-full">
+                                                            {/* Premium Bar */}
+                                                            <motion.div
+                                                                initial={{ height: 0 }}
+                                                                animate={{ height: `${Math.max((day.amount / maxValue) * 100, 5)}%` }}
+                                                                transition={{ delay: dIdx * 0.02, type: "spring", stiffness: 100, damping: 15 }}
+                                                                className={cn(
+                                                                    "w-full rounded-t-2xl cursor-pointer relative",
+                                                                    isMax
+                                                                        ? "bg-gradient-to-t from-primary to-orange-400 shadow-[0_-10px_30px_-10px_rgba(255,165,0,0.5)]"
+                                                                        : "bg-gray-200 dark:bg-white/10 group-hover/bar:bg-primary/40"
+                                                                )}
+                                                            >
+                                                                {/* Hover Glow */}
+                                                                <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/bar:opacity-100 transition-opacity rounded-t-2xl" />
+                                                            </motion.div>
 
-                                                {/* Floating Tooltip */}
-                                                <div className="absolute -top-14 left-1/2 -translate-x-1/2 pointer-events-none opacity-0 group-hover/bar:opacity-100 group-hover/bar:-top-16 transition-all duration-300 z-50">
-                                                    <div className="bg-black/80 dark:bg-white/90 backdrop-blur-md text-white dark:text-black py-2 px-3 rounded-xl shadow-2xl flex flex-col items-center">
-                                                        <span className="text-[10px] font-black uppercase tracking-tighter opacity-60">Spent</span>
-                                                        <span className="text-sm font-black whitespace-nowrap">{currencySymbol}{day.amount.toLocaleString()}</span>
-                                                        {/* Arrow */}
-                                                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black/80 dark:bg-white/90 rotate-45" />
+                                                            {/* Floating Tooltip */}
+                                                            <div className="absolute -top-14 left-1/2 -translate-x-1/2 pointer-events-none opacity-0 group-hover/bar:opacity-100 group-hover/bar:-top-16 transition-all duration-300 z-50">
+                                                                <div className="bg-black/80 dark:bg-white/90 backdrop-blur-md text-white dark:text-black py-2 px-3 rounded-xl shadow-2xl flex flex-col items-center">
+                                                                    <span className="text-[10px] font-black uppercase tracking-tighter opacity-60">Spent</span>
+                                                                    <span className="text-sm font-black whitespace-nowrap">{currencySymbol}{day.amount.toLocaleString()}</span>
+                                                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black/80 dark:bg-white/90 rotate-45" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <span className={cn(
+                                                            "text-[10px] font-black transition-all",
+                                                            isMax ? "text-primary opacity-100" : "opacity-30 group-hover/bar:opacity-100"
+                                                        )}>
+                                                            {day.day}
+                                                        </span>
                                                     </div>
-                                                </div>
-                                            </div>
-                                            <span className={cn(
-                                                "text-[10px] font-black transition-all",
-                                                day.amount === stats.maxWeekly ? "text-primary opacity-100" : "opacity-30 group-hover/bar:opacity-100"
-                                            )}>
-                                                {day.day}
-                                            </span>
-                                        </div>
-                                    ))}
+                                                )
+                                            })}
+                                        </motion.div>
+                                    </AnimatePresence>
                                 </div>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-            </div>
+            </motion.div>
 
             {/* Bottom Row: Fun Facts */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="border-none shadow-sm dark:bg-white/5 p-8 flex items-center gap-6">
-                    <div className="h-16 w-16 rounded-3xl bg-amber-500/10 flex items-center justify-center text-amber-600">
-                        <TrendingDown className="h-8 w-8" />
-                    </div>
-                    <div>
-                        <h4 className="font-black text-xl">Top Category</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            Your biggest spending is on <span className="text-primary font-bold">"{stats.sortedCategories[0]?.name || 'N/A'}"</span>.
-                            This accounts for <span className="font-bold">{((stats.sortedCategories[0]?.amount || 0) / (stats.totalExpense || 1) * 100).toFixed(1)}%</span> of your total journals.
-                        </p>
-                    </div>
-                </Card>
+                <motion.div variants={itemVariants}>
+                    <Card className="border-none shadow-sm dark:bg-white/5 p-8 flex items-center gap-6 h-full group hover:bg-white/40 dark:hover:bg-white/10 transition-colors">
+                        <motion.div
+                            whileHover={{ scale: 1.1, rotate: -10 }}
+                            className="h-16 w-16 rounded-3xl bg-amber-500/10 flex items-center justify-center text-amber-600"
+                        >
+                            <TrendingDown className="h-8 w-8" />
+                        </motion.div>
+                        <div>
+                            <h4 className="font-black text-xl">Top Category</h4>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                Your biggest spending is on <span className="text-primary font-bold">"{stats.sortedCategories[0]?.name || 'N/A'}"</span>.
+                                This accounts for <span className="font-bold">{((stats.sortedCategories[0]?.amount || 0) / (stats.totalExpense || 1) * 100).toFixed(1)}%</span> of your total journals.
+                            </p>
+                        </div>
+                    </Card>
+                </motion.div>
 
-                <Card className="border-none shadow-sm dark:bg-white/5 p-8 flex items-center gap-6 text-right justify-end">
-                    <div>
-                        <h4 className="font-black text-xl">Consistency</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            You've recorded <span className="text-primary font-bold">{expenses.length}</span> journals so far.
-                            Keep it up to unlock deeper financial intelligence!
-                        </p>
-                    </div>
-                    <div className="h-16 w-16 rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-600">
-                        <Calendar className="h-8 w-8" />
-                    </div>
-                </Card>
+                <motion.div variants={itemVariants}>
+                    <Card className="border-none shadow-sm dark:bg-white/5 p-8 flex items-center gap-6 text-right justify-end h-full group hover:bg-white/40 dark:hover:bg-white/10 transition-colors">
+                        <div>
+                            <h4 className="font-black text-xl">Consistency</h4>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                You've recorded <span className="text-primary font-bold">{expenses.length}</span> journals so far.
+                                Keep it up to unlock deeper financial intelligence!
+                            </p>
+                        </div>
+                        <motion.div
+                            whileHover={{ scale: 1.1, rotate: 10 }}
+                            className="h-16 w-16 rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-600"
+                        >
+                            <Calendar className="h-8 w-8" />
+                        </motion.div>
+                    </Card>
+                </motion.div>
             </div>
-        </div>
+        </motion.div>
     );
 }

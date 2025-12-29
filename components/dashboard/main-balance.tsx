@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Wallet, Settings2, CheckCircle2, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     Dialog,
     DialogContent,
@@ -12,8 +13,6 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
-// ... imports
 
 interface MainBalanceProps {
     accounts: any[];
@@ -24,10 +23,25 @@ interface MainBalanceProps {
 }
 
 export function MainBalance({ accounts, categories, greeting, currencySymbol = "$", children }: MainBalanceProps) {
-    // By default, all accounts are selected
-    const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(
-        accounts.map((acc) => acc.id)
-    );
+    // Load selected accounts from localStorage or default to all accounts
+    const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('selectedAccountIds');
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch (e) {
+                    return accounts.map((acc) => acc.id);
+                }
+            }
+        }
+        return accounts.map((acc) => acc.id);
+    });
+
+    // Save to localStorage whenever selection changes
+    useEffect(() => {
+        localStorage.setItem('selectedAccountIds', JSON.stringify(selectedAccountIds));
+    }, [selectedAccountIds]);
 
     const toggleAccount = (id: string) => {
         setSelectedAccountIds((prev) =>
@@ -50,30 +64,42 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
 
     return (
         <div className="relative h-full">
-            <div className="absolute top-0 right-0 p-4 md:p-8 opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-500 overflow-hidden">
-                <Wallet className="h-32 w-32 md:h-48 md:w-48 rotate-12" />
-            </div>
+            <motion.div
+                initial={{ opacity: 0, rotate: 0, scale: 0.8 }}
+                animate={{ opacity: 0.1, rotate: -15, scale: 1 }}
+                whileHover={{ scale: 1.05, rotate: -10, opacity: 0.15 }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                className="absolute -bottom-8 -right-8 pointer-events-none"
+            >
+                <Wallet className="h-48 w-48 md:h-64 md:w-64" />
+            </motion.div>
 
             <div className="relative z-10 flex flex-col justify-between h-full min-h-[300px]">
-                <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-                    <div className="flex-1 w-full relative z-10">
+                <div className="flex flex-row justify-between items-start gap-4">
+                    <div className="flex-1 min-w-0">
                         <div className="mb-4">
-                            <h3 className="text-2xl font-bold text-black/40 dark:text-white/40 tracking-tight">{greeting}</h3>
+                            <h3 className="text-xl md:text-2xl font-bold text-black/40 dark:text-white/40 tracking-tight truncate">{greeting}</h3>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="bg-white/50 border-none px-4 py-1.5 backdrop-blur-md max-w-[200px] truncate">
+                            <Badge variant="secondary" className="bg-white/50 border-none px-3 py-1.5 backdrop-blur-md whitespace-nowrap text-[10px] md:text-xs">
                                 {selectedAccountIds.length === accounts.length
                                     ? "Net Balance"
                                     : selectedAccountIds.length === 0
                                         ? "No Selection"
-                                        : activeAccountNames}
+                                        : selectedAccountIds.length === 1
+                                            ? activeAccountNames
+                                            : `${selectedAccountIds.length} Accounts`}
                             </Badge>
 
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <button className="p-1.5 rounded-full hover:bg-black/5 transition-colors">
+                                    <motion.button
+                                        whileHover={{ rotate: 90 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        className="p-1.5 rounded-full hover:bg-black/5 transition-colors"
+                                    >
                                         <Settings2 className="h-4 w-4 opacity-40 hover:opacity-100" />
-                                    </button>
+                                    </motion.button>
                                 </DialogTrigger>
                                 <DialogContent className="w-[90%] sm:max-w-[350px] rounded-[2rem] overflow-hidden">
                                     <DialogHeader>
@@ -133,13 +159,22 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
                             </Dialog>
                         </div>
 
-                        <h2 className="text-4xl md:text-6xl font-bold mt-6 tracking-tight text-black dark:text-white break-words">
-                            {currencySymbol}{displayBalance.toLocaleString()}
-                            <span className="text-xl md:text-2xl font-medium opacity-60 ml-2">.00</span>
-                        </h2>
+                        <AnimatePresence mode="wait">
+                            <motion.h2
+                                key={displayBalance}
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.98 }}
+                                transition={{ duration: 0.2 }}
+                                className="text-3xl md:text-6xl font-bold mt-6 tracking-tight text-black dark:text-white break-words"
+                            >
+                                {currencySymbol}{displayBalance.toLocaleString()}
+                                <span className="text-lg md:text-2xl font-medium opacity-60 ml-2">.00</span>
+                            </motion.h2>
+                        </AnimatePresence>
                     </div>
                     {/* Floating Action Button for Mobile / Desktop */}
-                    <div className="absolute top-0 right-0 md:static md:block z-20">
+                    <div className="shrink-0 z-20">
                         {children}
                     </div>
                 </div>
