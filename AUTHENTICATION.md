@@ -286,52 +286,32 @@ if (session && isPublicPath && pathname === "/login") {
 ---
 
 ## Database Schema
+ 
+ The database schema is managed using **Drizzle ORM** in `db/schema.ts`.
+ 
+ ### Tables
+ 
+ | Table | Description |
+ |-------|-------------|
+ | `profiles` | User profiles and authentication data |
+ | `auth_otps` | Temporary one-time passwords for login/reset |
+ | `accounts` | Financial accounts (Wallet, Bank, etc.) |
+ | `categories` | Transaction categories |
+ | `expenses` | All transactions (Income and Expenses) |
+ | `ai_insights` | AI-generated financial insights cache |
+ 
+ ### Migration Management
+ 
+ To update the database schema:
+ 
+ 1. Modify `db/schema.ts`
+ 2. Run `npm run db:generate` to create a new migration
+ 3. Run `npm run db:push` to apply changes to the database
+ 
+ For production, it's recommended to use the generated SQL files in the `./drizzle` folder.
+ 
+ ---
 
-### `profiles` Table
-
-```sql
-CREATE TABLE profiles (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email TEXT UNIQUE NOT NULL,
-    password_hash TEXT,  -- bcrypt hash, nullable for OTP-only users
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-**Fields**:
-- `id`: Unique user identifier (UUID)
-- `email`: User's email address (unique)
-- `password_hash`: bcrypt-hashed password (nullable)
-- `created_at`: Account creation timestamp
-- `updated_at`: Last update timestamp
-
-### `auth_otps` Table
-
-```sql
-CREATE TABLE auth_otps (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email TEXT NOT NULL,
-    code TEXT NOT NULL,  -- 6-digit OTP
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-**Fields**:
-- `id`: Unique OTP record identifier
-- `email`: Email address for OTP
-- `code`: 6-digit OTP code
-- `expires_at`: Expiration timestamp (10 minutes from creation)
-- `created_at`: OTP creation timestamp
-
-**Indexes Recommended**:
-```sql
-CREATE INDEX idx_auth_otps_email ON auth_otps(email);
-CREATE INDEX idx_auth_otps_expires_at ON auth_otps(expires_at);
-```
-
----
 
 ## Supabase Clients
 

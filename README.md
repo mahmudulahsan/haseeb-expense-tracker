@@ -64,32 +64,20 @@ A modern, full-stack expense tracking web application built with Next.js, Supaba
    - Site URL
 
 5. **Set up database**
-   
-   Create the following tables in Supabase:
-   
-   ```sql
-   -- profiles table
-   CREATE TABLE profiles (
-       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-       email TEXT UNIQUE NOT NULL,
-       password_hash TEXT,
-       created_at TIMESTAMP DEFAULT NOW(),
-       updated_at TIMESTAMP DEFAULT NOW()
-   );
-   
-   -- auth_otps table
-   CREATE TABLE auth_otps (
-       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-       email TEXT NOT NULL,
-       code TEXT NOT NULL,
-       expires_at TIMESTAMP NOT NULL,
-       created_at TIMESTAMP DEFAULT NOW()
-   );
-   
-   -- Indexes
-   CREATE INDEX idx_auth_otps_email ON auth_otps(email);
-   CREATE INDEX idx_auth_otps_expires_at ON auth_otps(expires_at);
-   ```
+    
+    The project uses **Drizzle ORM** for database management and migrations.
+    
+    1. Ensure `DATABASE_URL` (Postgres connection string) is set in your environment or `.env` file.
+    2. Run migrations:
+    ```bash
+    npm run db:push
+    ```
+    
+    Alternatively, you can generate SQL migrations and apply them manually:
+    ```bash
+    npm run db:generate
+    ```
+    The SQL files will be in the `./drizzle` folder.
 
 6. **Run development server**
    ```bash
