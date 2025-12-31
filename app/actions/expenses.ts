@@ -41,6 +41,6 @@ export async function createExpense(formData: FormData) {
     }
 
     // 4. Update UI
-    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true };
 }

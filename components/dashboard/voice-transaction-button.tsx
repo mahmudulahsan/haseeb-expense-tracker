@@ -5,6 +5,7 @@ import { Mic, MicOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { voiceTransaction } from "@/app/actions/finance";
 import { cn } from "@/lib/utils";
+import { formatLocalDate } from "@/lib/date-utils";
 
 export function VoiceTransactionButton() {
     const [isListening, setIsListening] = useState(false);
@@ -60,7 +61,7 @@ export function VoiceTransactionButton() {
         setIsProcessing(true);
         setStatus("Processing...");
         try {
-            const result = await voiceTransaction(text);
+            const result = await voiceTransaction(text, formatLocalDate());
             if ("success" in result && result.success) {
                 setStatus("Success!");
                 setTimeout(() => setStatus(null), 2000);

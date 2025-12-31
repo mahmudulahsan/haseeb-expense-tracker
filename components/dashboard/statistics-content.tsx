@@ -13,6 +13,7 @@ import {
     Trophy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatLocalDate, parseLocalDate } from "@/lib/date-utils";
 import { AIInsights } from "./ai-insights";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 
@@ -61,11 +62,15 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                 totalExpense: 0,
                 currentStreak: 0,
                 longestStreak: 0,
-                weeklyData: Array.from({ length: 7 }).map((_, i) => ({
-                    day: new Date(Date.now() - (6 - i) * 86400000).toLocaleDateString('en-US', { weekday: 'short' }),
-                    amount: 0,
-                    date: ""
-                })),
+                weeklyData: Array.from({ length: 7 }).map((_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (6 - i));
+                    return {
+                        day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+                        amount: 0,
+                        date: formatLocalDate(d)
+                    };
+                }),
                 monthlyData: Array.from({ length: 30 }).map((_, i) => ({
                     day: (i + 1).toString(),
                     amount: 0,
@@ -104,16 +109,16 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
         let tempStreak = 0;
 
         if (dates.length > 0) {
-            const today = new Date().toISOString().split('T')[0];
-            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+            const today = formatLocalDate();
+            const yesterday = formatLocalDate(new Date(Date.now() - 86400000));
 
             // Current Streak
             let checkDate = dates[0] === today || dates[0] === yesterday ? dates[0] : null;
             if (checkDate) {
                 currentStreak = 1;
                 for (let i = 1; i < dates.length; i++) {
-                    const d1 = new Date(dates[i - 1]);
-                    const d2 = new Date(dates[i]);
+                    const d1 = parseLocalDate(dates[i - 1]);
+                    const d2 = parseLocalDate(dates[i]);
                     const diff = (d1.getTime() - d2.getTime()) / (1000 * 3600 * 24);
                     if (diff === 1) {
                         currentStreak++;
@@ -128,8 +133,8 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                 if (i === 0) {
                     tempStreak = 1;
                 } else {
-                    const d1 = new Date(dates[i - 1]);
-                    const d2 = new Date(dates[i]);
+                    const d1 = parseLocalDate(dates[i - 1]);
+                    const d2 = parseLocalDate(dates[i]);
                     const diff = (d1.getTime() - d2.getTime()) / (1000 * 3600 * 24);
                     if (diff === 1) {
                         tempStreak++;
@@ -146,7 +151,7 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
         const weeklyData = Array.from({ length: 7 }).map((_, i) => {
             const d = new Date();
             d.setDate(d.getDate() - (6 - i));
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = formatLocalDate(d);
             const dayAmount = expenses
                 .filter(e => e.date === dateStr && e.type === 'expense')
                 .reduce((acc, curr) => acc + Number(curr.amount), 0);
@@ -163,7 +168,7 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
         const monthlyData = Array.from({ length: 30 }).map((_, i) => {
             const d = new Date();
             d.setDate(d.getDate() - (29 - i));
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = formatLocalDate(d);
             const dayAmount = expenses
                 .filter(e => e.date === dateStr && e.type === 'expense')
                 .reduce((acc, curr) => acc + Number(curr.amount), 0);
@@ -184,7 +189,7 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
             const month = d.getMonth();
             const monthAmount = expenses
                 .filter(e => {
-                    const expDate = new Date(e.date);
+                    const expDate = parseLocalDate(e.date);
                     return expDate.getFullYear() === year && expDate.getMonth() === month && e.type === 'expense';
                 })
                 .reduce((acc, curr) => acc + Number(curr.amount), 0);
@@ -229,12 +234,12 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                         >
                             <Flame className="h-32 w-32" />
                         </motion.div>
-                        <CardContent className="p-6 relative z-10">
+                        <CardContent className="p-4 sm:p-6 relative z-10">
                             <div className="flex items-center gap-2 mb-4">
                                 <Badge className="bg-white/20 border-none text-white">Daily Streak</Badge>
                             </div>
-                            <h3 className="text-4xl font-black">{stats.currentStreak} Days</h3>
-                            <p className="text-white/70 text-sm mt-1 font-medium italic">You're on fire! Keep tracking daily.</p>
+                            <h3 className="text-3xl sm:text-4xl font-black">{stats.currentStreak} Days</h3>
+                            <p className="text-white/70 text-xs sm:text-sm mt-1 font-medium italic">You're on fire! Keep tracking daily.</p>
                         </CardContent>
                     </Card>
                 </motion.div>
@@ -248,12 +253,12 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                         >
                             <Trophy className="h-32 w-32" />
                         </motion.div>
-                        <CardContent className="p-6 relative z-10">
+                        <CardContent className="p-4 sm:p-6 relative z-10">
                             <div className="flex items-center gap-2 mb-4">
                                 <Badge className="bg-white/20 border-none text-white">All Time Best</Badge>
                             </div>
-                            <h3 className="text-4xl font-black">{stats.longestStreak} Days</h3>
-                            <p className="text-white/70 text-sm mt-1 font-medium italic">Your record for consistent logging.</p>
+                            <h3 className="text-3xl sm:text-4xl font-black">{stats.longestStreak} Days</h3>
+                            <p className="text-white/70 text-xs sm:text-sm mt-1 font-medium italic">Your record for consistent logging.</p>
                         </CardContent>
                     </Card>
                 </motion.div>
@@ -267,14 +272,14 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                         >
                             <Target className="h-32 w-32" />
                         </motion.div>
-                        <CardContent className="p-6 relative z-10">
+                        <CardContent className="p-4 sm:p-6 relative z-10">
                             <div className="flex items-center gap-2 mb-4">
                                 <Badge className="bg-white/20 border-none text-white">Reliability Score</Badge>
                             </div>
-                            <h3 className="text-4xl font-black">
+                            <h3 className="text-3xl sm:text-4xl font-black">
                                 {expenses.length > 0 ? Math.min(100, Math.round((stats.currentStreak / 30) * 100)) : 0}%
                             </h3>
-                            <p className="text-white/70 text-sm mt-1 font-medium italic">Consistency over the last 30 days.</p>
+                            <p className="text-white/70 text-xs sm:text-sm mt-1 font-medium italic">Consistency over the last 30 days.</p>
                         </CardContent>
                     </Card>
                 </motion.div>
@@ -346,8 +351,8 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                             </div>
 
                             {/* Weekly Trend Visual */}
-                            <div className="bg-gray-50/50 dark:bg-black/40 rounded-[2.5rem] p-8 border border-gray-100/50 dark:border-white/5 shadow-inner overflow-hidden">
-                                <h4 className="text-sm font-bold uppercase tracking-widest opacity-40 mb-10 flex items-center gap-2">
+                            <div className="bg-gray-50/50 dark:bg-black/40 rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-8 border border-gray-100/50 dark:border-white/5 shadow-inner overflow-hidden">
+                                <h4 className="text-[10px] sm:text-sm font-bold uppercase tracking-widest opacity-40 mb-10 flex items-center gap-2">
                                     <Calendar className="h-4 w-4" />
                                     {timePeriod === 'weekly' ? 'Weekly Activity' : timePeriod === 'monthly' ? 'Monthly Activity (30 Days)' : 'Yearly Activity (12 Months)'}
                                 </h4>
@@ -413,19 +418,19 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                 </Card>
             </motion.div>
 
-            {/* Bottom Row: Fun Facts */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Bottom Row: Fun Facts - Commented out as requested */}
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <motion.div variants={itemVariants}>
-                    <Card className="border-none shadow-sm dark:bg-white/5 p-8 flex items-center gap-6 h-full group hover:bg-white/40 dark:hover:bg-white/10 transition-colors">
+                    <Card className="border-none shadow-sm dark:bg-white/5 p-4 sm:p-8 flex items-center gap-4 sm:gap-6 h-full group hover:bg-white/40 dark:hover:bg-white/10 transition-colors">
                         <motion.div
                             whileHover={{ scale: 1.1, rotate: -10 }}
-                            className="h-16 w-16 rounded-3xl bg-amber-500/10 flex items-center justify-center text-amber-600"
+                            className="h-12 w-12 sm:h-16 sm:w-16 rounded-2xl sm:rounded-3xl bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0"
                         >
-                            <TrendingDown className="h-8 w-8" />
+                            <TrendingDown className="h-6 w-6 sm:h-8 sm:w-8" />
                         </motion.div>
                         <div>
-                            <h4 className="font-black text-xl">Top Category</h4>
-                            <p className="text-sm text-muted-foreground mt-1">
+                            <h4 className="font-black text-lg sm:text-xl">Top Category</h4>
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                                 Your biggest spending is on <span className="text-primary font-bold">"{stats.sortedCategories[0]?.name || 'N/A'}"</span>.
                                 This accounts for <span className="font-bold">{((stats.sortedCategories[0]?.amount || 0) / (stats.totalExpense || 1) * 100).toFixed(1)}%</span> of your total journals.
                             </p>
@@ -434,23 +439,23 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                 </motion.div>
 
                 <motion.div variants={itemVariants}>
-                    <Card className="border-none shadow-sm dark:bg-white/5 p-8 flex items-center gap-6 text-right justify-end h-full group hover:bg-white/40 dark:hover:bg-white/10 transition-colors">
+                    <Card className="border-none shadow-sm dark:bg-white/5 p-4 sm:p-8 flex items-center gap-4 sm:gap-6 text-right justify-end h-full group hover:bg-white/40 dark:hover:bg-white/10 transition-colors">
                         <div>
-                            <h4 className="font-black text-xl">Consistency</h4>
-                            <p className="text-sm text-muted-foreground mt-1">
+                            <h4 className="font-black text-lg sm:text-xl">Consistency</h4>
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                                 You've recorded <span className="text-primary font-bold">{expenses.length}</span> journals so far.
                                 Keep it up to unlock deeper financial intelligence!
                             </p>
                         </div>
                         <motion.div
                             whileHover={{ scale: 1.1, rotate: 10 }}
-                            className="h-16 w-16 rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-600"
+                            className="h-12 w-12 sm:h-16 sm:w-16 rounded-2xl sm:rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0"
                         >
-                            <Calendar className="h-8 w-8" />
+                            <Calendar className="h-6 w-6 sm:h-8 sm:w-8" />
                         </motion.div>
                     </Card>
                 </motion.div>
-            </div>
+            </div> */}
         </motion.div>
     );
 }

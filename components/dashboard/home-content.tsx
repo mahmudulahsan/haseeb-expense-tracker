@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, Variants } from "framer-motion";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,10 +28,12 @@ import {
     ArrowDownRight,
     Calendar,
     Filter,
-    Maximize2
+    Maximize2,
+    Download
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LedgerList } from "@/components/dashboard/ledger-list";
+import { parseLocalDate, getTimeBasedGreeting } from "@/lib/date-utils";
 import {
     Dialog,
     DialogContent,
@@ -62,26 +66,19 @@ export function HomeContent({
     totalIncome,
     totalSpent
 }: HomeContentProps) {
+    const timeGreeting = getTimeBasedGreeting();
+    const personalizedGreeting = greeting.startsWith("Hey,")
+        ? `${timeGreeting}, ${greeting.slice(5)}`
+        : `${timeGreeting}! ${greeting}`;
+
     const now = new Date();
     const searchParams = useSearchParams();
     const query = searchParams.get("q")?.toLowerCase() || "";
 
-    // Load filter options from localStorage or use defaults
-    const [filterMonth, setFilterMonth] = useState<string>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('filterMonth');
-            return saved || (now.getMonth() + 1).toString().padStart(2, '0');
-        }
-        return (now.getMonth() + 1).toString().padStart(2, '0');
-    });
+    // Default to current month/year on load
+    const [filterMonth, setFilterMonth] = useState<string>((now.getMonth() + 1).toString().padStart(2, '0'));
 
-    const [filterYear, setFilterYear] = useState<string>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('filterYear');
-            return saved || now.getFullYear().toString();
-        }
-        return now.getFullYear().toString();
-    });
+    const [filterYear, setFilterYear] = useState<string>(now.getFullYear().toString());
 
     const [filterCategory, setFilterCategory] = useState<string>(() => {
         if (typeof window !== 'undefined') {
@@ -91,18 +88,22 @@ export function HomeContent({
         return "all";
     });
 
+    const [filterType, setFilterType] = useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('filterType');
+            return saved || "all";
+        }
+        return "all";
+    });
+
     // Save filter options to localStorage whenever they change
-    useEffect(() => {
-        localStorage.setItem('filterMonth', filterMonth);
-    }, [filterMonth]);
-
-    useEffect(() => {
-        localStorage.setItem('filterYear', filterYear);
-    }, [filterYear]);
-
     useEffect(() => {
         localStorage.setItem('filterCategory', filterCategory);
     }, [filterCategory]);
+
+    useEffect(() => {
+        localStorage.setItem('filterType', filterType);
+    }, [filterType]);
 
     const [detailedAccount, setDetailedAccount] = useState<any>(null);
     const [accountFilterMonth, setAccountFilterMonth] = useState<string>((now.getMonth() + 1).toString().padStart(2, '0'));
@@ -110,7 +111,7 @@ export function HomeContent({
 
     // Generate years from data or defaults
     const years = useMemo(() => {
-        const expenseYears = expenses.map(e => new Date(e.date).getFullYear());
+        const expenseYears = expenses.map(e => parseLocalDate(e.date).getFullYear());
         const currentYear = new Date().getFullYear();
         const uniqueYears = Array.from(new Set([...expenseYears, currentYear])).sort((a, b) => b - a);
         return uniqueYears.map(String);
@@ -118,11 +119,12 @@ export function HomeContent({
 
     const filteredExpenses = useMemo(() => {
         return expenses.filter(expense => {
-            const expenseDate = new Date(expense.date);
+            const expenseDate = parseLocalDate(expense.date);
             const m = (expenseDate.getMonth() + 1).toString().padStart(2, '0');
             const y = expenseDate.getFullYear().toString();
             const matchesDate = m === filterMonth && y === filterYear;
             const matchesCategory = filterCategory === "all" || expense.category_id === filterCategory;
+            const matchesType = filterType === "all" || expense.type === filterType;
 
             // Search filter
             const matchesSearch = !query ||
@@ -130,9 +132,76 @@ export function HomeContent({
                 expense.categories?.name?.toLowerCase().includes(query) ||
                 accounts.find(a => a.id === expense.account_id)?.name?.toLowerCase().includes(query);
 
-            return matchesDate && matchesCategory && matchesSearch;
+            return matchesDate && matchesCategory && matchesType && matchesSearch;
         });
-    }, [expenses, filterMonth, filterYear, filterCategory, query, accounts]);
+    }, [expenses, filterMonth, filterYear, filterCategory, filterType, query, accounts]);
+
+    const handleDownloadPDF = () => {
+        if (filteredExpenses.length === 0) return;
+
+        const doc = new jsPDF();
+        const monthName = MONTHS[parseInt(filterMonth) - 1];
+        const title = `${monthName} ${filterYear} - Transaction Ledger`;
+        const currencyShort = currencySymbol === '৳' ? 'TK' : currencySymbol;
+
+        // Add Header (Compact)
+        doc.setFontSize(14);
+        doc.setTextColor(40, 40, 40);
+        doc.text(title, 14, 15);
+
+        doc.setFontSize(9);
+        doc.setTextColor(120, 120, 120);
+        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 20);
+
+        // Prepare Data
+        const tableData = filteredExpenses.map(exp => {
+            const acc = accounts.find(a => a.id === exp.account_id)?.name || "N/A";
+            const cat = categories.find(c => c.id === exp.category_id)?.name || "N/A";
+            const amount = `${exp.type === 'income' ? '+' : '-'}${exp.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
+            return [
+                exp.date,
+                exp.description || "-",
+                cat,
+                acc,
+                exp.type?.toUpperCase() || "EXPENSE",
+                amount
+            ];
+        });
+
+        // Add Table
+        autoTable(doc, {
+            startY: 28,
+            head: [["Date", "Description", "Category", "Account", "Type", `Amount (${currencyShort})`]],
+            body: tableData,
+            theme: 'striped',
+            headStyles: {
+                fillColor: [249, 115, 22], // primary/orange color
+                textColor: [255, 255, 255],
+                fontSize: 10,
+                fontStyle: 'bold'
+            },
+            bodyStyles: {
+                fontSize: 9,
+                textColor: [60, 60, 60]
+            },
+            alternateRowStyles: {
+                fillColor: [250, 250, 250]
+            },
+            columnStyles: {
+                5: { halign: 'right', fontStyle: 'bold' } // Amount column
+            }
+        });
+
+        // Summary (Compact)
+        const finalY = (doc as any).lastAutoTable.finalY + 8;
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        const netTotalValue = `${totalNet >= 0 ? '+' : ''}${totalNet.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+        doc.text(netTotalValue, doc.internal.pageSize.getWidth() - 14, finalY, { align: "right" });
+
+        doc.save(`Ledger_${monthName}_${filterYear}.pdf`);
+    };
 
     const totalNet = useMemo(() => {
         return filteredExpenses.reduce((acc, curr) => {
@@ -144,7 +213,7 @@ export function HomeContent({
         if (!detailedAccount) return [];
         return expenses.filter(expense => {
             const matchesAccount = expense.account_id === detailedAccount.id;
-            const expenseDate = new Date(expense.date);
+            const expenseDate = parseLocalDate(expense.date);
             const m = (expenseDate.getMonth() + 1).toString().padStart(2, '0');
             const y = expenseDate.getFullYear().toString();
             const matchesDate = m === accountFilterMonth && y === accountFilterYear;
@@ -165,8 +234,8 @@ export function HomeContent({
                 {/* Main Card (Primary Account) */}
                 <div className="lg:col-span-8 h-full">
                     <Card className="bg-[#FFD966] dark:bg-primary/10 border-none shadow-xl overflow-hidden h-full relative group">
-                        <CardContent className="p-10">
-                            <MainBalance accounts={accounts} categories={categories} greeting={greeting} currencySymbol={currencySymbol}>
+                        <CardContent className="p-6 sm:p-10">
+                            <MainBalance accounts={accounts} categories={categories} greeting={personalizedGreeting} currencySymbol={currencySymbol}>
                                 <AddTransactionDialog accounts={accounts} categories={categories} currencySymbol={currencySymbol} />
                             </MainBalance>
                         </CardContent>
@@ -209,15 +278,16 @@ export function HomeContent({
                             <AddAccountDialog variant="compact" />
                         </CardHeader>
                         <CardContent className="p-4 pt-0">
-                            <div className="grid grid-cols-2 gap-3 max-h-[560px] overflow-y-auto custom-scrollbar smooth-scroll pr-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[560px] overflow-y-auto custom-scrollbar smooth-scroll pr-2 pb-4">
                                 {accounts.length === 0 ? (
-                                    <div className="col-span-2 text-center py-12 opacity-30 italic text-sm">
+                                    <div className="col-span-1 sm:col-span-2 text-center py-12 opacity-30 italic text-sm">
                                         No accounts added yet.
                                     </div>
                                 ) : accounts.map((acc: any) => (
                                     <motion.div
                                         key={acc.id}
-                                        whileHover={{ scale: 1.02, y: -2 }}
+                                        layout
+                                        whileHover={{ scale: 1.02, y: -2, zIndex: 10 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => {
                                             setDetailedAccount(acc);
@@ -225,7 +295,7 @@ export function HomeContent({
                                             setAccountFilterYear(filterYear);
                                         }}
                                         className={cn(
-                                            "relative p-4 rounded-[1.5rem] flex flex-col justify-between aspect-[1.1/1] group transition-all duration-300 border-2 border-transparent hover:border-dashed hover:border-primary/30 cursor-pointer overflow-hidden",
+                                            "relative p-4 rounded-[1.5rem] flex flex-col justify-between aspect-[1.1/1] min-h-[140px] group transition-all duration-300 border-2 border-transparent hover:border-dashed hover:border-primary/30 cursor-pointer overflow-hidden shadow-sm",
                                             acc.type === 'Savings' ? "bg-[#E2F0D9] dark:bg-emerald-950/40" :
                                                 acc.type === 'Investment' ? "bg-[#FFF2CC] dark:bg-amber-950/40" :
                                                     "bg-gray-100 dark:bg-white/10"
@@ -275,124 +345,260 @@ export function HomeContent({
                     )}
                 >
                     <Card className="border-none shadow-none bg-transparent">
-                        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
-                            <div className="flex items-center gap-3">
-                                <CardTitle className="text-lg whitespace-nowrap">Recent Ledger</CardTitle>
-                                <Badge className="bg-orange-500 text-white border-none px-3 h-5">Journal</Badge>
+                        <CardHeader className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 p-6">
+                            <div className="flex items-center gap-3 shrink-0">
+                                <CardTitle className="text-xl font-black whitespace-nowrap">Recent Ledger</CardTitle>
                             </div>
 
-                            <div className="flex items-center gap-2 w-full sm:w-auto overflow-hidden">
-                                <div className="flex-1 sm:flex-initial flex items-center gap-0.5 sm:gap-1 bg-gray-100/50 dark:bg-white/5 p-1 rounded-xl overflow-x-auto no-scrollbar">
-                                    <Select value={filterCategory} onValueChange={setFilterCategory}>
-                                        <SelectTrigger className="h-8 min-w-[80px] sm:min-w-[100px] border-none bg-transparent focus:ring-0 text-[10px] font-black uppercase tracking-widest shadow-none px-2 sm:px-3">
-                                            <SelectValue placeholder="Category" />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl border-none shadow-2xl">
-                                            <SelectItem value="all" className="text-[10px] font-black uppercase tracking-widest">All Categories</SelectItem>
-                                            {categories.map((cat) => (
-                                                <SelectItem
-                                                    key={cat.id}
-                                                    value={cat.id}
-                                                    className="text-[10px] font-black uppercase tracking-widest"
-                                                >
-                                                    {cat.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-
-                                    <div className="w-[1px] h-4 bg-gray-200 dark:bg-white/10 mx-0.5 sm:mx-1 shrink-0" />
-
-                                    <Select value={filterMonth} onValueChange={setFilterMonth}>
-                                        <SelectTrigger className="h-8 min-w-[90px] sm:min-w-[120px] border-none bg-transparent focus:ring-0 text-[10px] font-black uppercase tracking-widest shadow-none px-2 sm:px-3">
-                                            <SelectValue placeholder="Month" />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl border-none shadow-2xl">
-                                            {MONTHS.map((month, idx) => (
-                                                <SelectItem
-                                                    key={month}
-                                                    value={(idx + 1).toString().padStart(2, '0')}
-                                                    className="text-[10px] font-black uppercase tracking-widest"
-                                                >
-                                                    {month}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-
-                                    <div className="w-[1px] h-4 bg-gray-200 dark:bg-white/10 mx-0.5 sm:mx-1 shrink-0" />
-
-                                    <Select value={filterYear} onValueChange={setFilterYear}>
-                                        <SelectTrigger className="h-8 min-w-[70px] sm:min-w-[85px] border-none bg-transparent focus:ring-0 text-[10px] font-black uppercase tracking-widest shadow-none px-2 sm:px-3">
-                                            <SelectValue placeholder="Year" />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl border-none shadow-2xl">
-                                            {years.map(year => (
-                                                <SelectItem
-                                                    key={year}
-                                                    value={year}
-                                                    className="text-[10px] font-black uppercase tracking-widest"
-                                                >
-                                                    {year}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-
-                                    <div className="p-1.5 text-primary/40 mr-1 shrink-0">
-                                        <Filter className="h-3 w-3" />
-                                    </div>
+                            <div className="flex flex-col md:flex-row items-center gap-3 w-full lg:w-auto">
+                                {/* Segmented Control for Type */}
+                                <div className="flex p-1 bg-gray-100/80 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/10 relative w-full md:w-auto shrink-0">
+                                    {['all', 'income', 'expense'].map((t) => (
+                                        <button
+                                            key={t}
+                                            onClick={() => setFilterType(t)}
+                                            className={cn(
+                                                "relative flex-1 md:flex-none md:min-w-[75px] px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all z-10 flex items-center justify-center gap-1.5",
+                                                filterType === t ? "text-white" : "text-muted-foreground hover:text-foreground"
+                                            )}
+                                        >
+                                            {filterType === t && (
+                                                <motion.div
+                                                    layoutId="ledgerTypePill"
+                                                    className={cn(
+                                                        "absolute inset-0 rounded-xl shadow-lg z-[-1]",
+                                                        t === 'all' ? "bg-primary shadow-primary/20" :
+                                                            t === 'income' ? "bg-emerald-500 shadow-emerald-500/20" :
+                                                                "bg-orange-500 shadow-orange-500/20"
+                                                    )}
+                                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                                />
+                                            )}
+                                            {t === 'income' && <ArrowUpRight className="h-3 w-3" />}
+                                            {t === 'expense' && <ArrowDownRight className="h-3 w-3" />}
+                                            {t}
+                                        </button>
+                                    ))}
                                 </div>
 
-                                <div className="shrink-0">
+                                <div className="flex items-center gap-2 w-full md:w-auto">
+                                    <div className="flex-1 md:flex-initial flex items-center gap-1 bg-gray-100/50 dark:bg-white/5 p-1 rounded-2xl border border-gray-200/50 dark:border-white/10 overflow-hidden">
+                                        <Select value={filterCategory} onValueChange={setFilterCategory}>
+                                            <SelectTrigger className="h-8 min-w-[85px] border-none bg-transparent focus:ring-0 text-[10px] font-black uppercase tracking-widest shadow-none px-2">
+                                                <SelectValue placeholder="Category" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                <SelectItem value="all" className="text-[10px] font-black uppercase tracking-widest">All</SelectItem>
+                                                {categories.map((cat) => (
+                                                    <SelectItem
+                                                        key={cat.id}
+                                                        value={cat.id}
+                                                        className="text-[10px] font-black uppercase tracking-widest"
+                                                    >
+                                                        {cat.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
 
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl bg-gray-100/50 dark:bg-white/5 hover:bg-primary/10 hover:text-primary transition-all">
-                                                <Maximize2 className="h-4 w-4" />
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="w-[95vw] sm:max-w-4xl h-[90vh] sm:h-[85vh] flex flex-col p-4 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] border-none shadow-2xl bg-white dark:bg-white/5 backdrop-blur-xl">
-                                            <DialogHeader className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0 mb-6 pr-0 sm:pr-10">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 shrink-0 rounded-2xl bg-primary/20 flex items-center justify-center">
-                                                        <Calendar className="h-5 w-5 text-primary" />
+                                        <div className="w-[1px] h-4 bg-gray-200 dark:bg-white/10 shrink-0" />
+
+                                        <Select value={filterMonth} onValueChange={setFilterMonth}>
+                                            <SelectTrigger className="h-8 min-w-[95px] border-none bg-transparent focus:ring-0 text-[10px] font-black uppercase tracking-widest shadow-none px-2">
+                                                <SelectValue placeholder="Month" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                {MONTHS.map((month, idx) => (
+                                                    <SelectItem
+                                                        key={month}
+                                                        value={(idx + 1).toString().padStart(2, '0')}
+                                                        className="text-[10px] font-black uppercase tracking-widest"
+                                                    >
+                                                        {month}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+
+                                        <div className="w-[1px] h-4 bg-gray-200 dark:bg-white/10 shrink-0" />
+
+                                        <Select value={filterYear} onValueChange={setFilterYear}>
+                                            <SelectTrigger className="h-8 min-w-[70px] border-none bg-transparent focus:ring-0 text-[10px] font-black uppercase tracking-widest shadow-none px-2">
+                                                <SelectValue placeholder="Year" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                {years.map(year => (
+                                                    <SelectItem
+                                                        key={year}
+                                                        value={year}
+                                                        className="text-[10px] font-black uppercase tracking-widest"
+                                                    >
+                                                        {year}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="shrink-0">
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-10 w-10 rounded-2xl bg-gray-100/50 dark:bg-white/5 hover:bg-primary/10 hover:text-primary transition-all border border-gray-200/50 dark:border-white/10"
+                                                >
+                                                    <Maximize2 className="h-4 w-4" />
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="w-[95vw] sm:max-w-4xl h-[90vh] sm:h-[85vh] flex flex-col p-0 overflow-hidden rounded-[1.5rem] sm:rounded-[2.5rem] border-none shadow-2xl bg-white dark:bg-white/5 backdrop-blur-xl">
+                                                <div className="p-4 sm:p-7 pb-2 flex flex-col gap-4">
+                                                    <DialogHeader className="relative pr-12">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="h-10 w-10 shrink-0 rounded-2xl bg-primary/20 flex items-center justify-center">
+                                                                <Calendar className="h-5 w-5 text-primary" />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <DialogTitle className="text-xl sm:text-2xl font-black truncate">Transaction Ledger</DialogTitle>
+                                                                <p className="text-[10px] sm:text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1.5 flex items-center gap-2">
+                                                                    <span>{MONTHS[parseInt(filterMonth) - 1]} {filterYear}</span>
+                                                                    <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
+                                                                    <span>{filteredExpenses.length} Records</span>
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </DialogHeader>
+
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        {/* Replicated Segmented Control - Fixed width for stability */}
+                                                        <div className="flex p-1 bg-gray-100/80 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/10 relative shrink-0">
+                                                            {['all', 'income', 'expense'].map((t) => (
+                                                                <button
+                                                                    key={t}
+                                                                    onClick={() => setFilterType(t)}
+                                                                    className={cn(
+                                                                        "relative min-w-[65px] sm:min-w-[80px] px-2 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all z-10 flex items-center justify-center gap-1.5",
+                                                                        filterType === t ? "text-white" : "text-muted-foreground hover:text-foreground"
+                                                                    )}
+                                                                >
+                                                                    {filterType === t && (
+                                                                        <motion.div
+                                                                            layoutId="ledgerTypePillPopup"
+                                                                            className={cn(
+                                                                                "absolute inset-0 rounded-xl shadow-lg z-[-1]",
+                                                                                t === 'all' ? "bg-primary shadow-primary/20" :
+                                                                                    t === 'income' ? "bg-emerald-500 shadow-emerald-500/20" :
+                                                                                        "bg-orange-500 shadow-orange-500/20"
+                                                                            )}
+                                                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                                                        />
+                                                                    )}
+                                                                    {t === 'income' && <ArrowUpRight className="h-3 w-3" />}
+                                                                    {t === 'expense' && <ArrowDownRight className="h-3 w-3" />}
+                                                                    {t}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+
+                                                        {/* Simple Filters Replicated */}
+                                                        <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-white/5 p-1 rounded-2xl border border-gray-200/50 dark:border-white/10 overflow-hidden shrink-0">
+                                                            <Select value={filterCategory} onValueChange={setFilterCategory}>
+                                                                <SelectTrigger className="h-8 min-w-[90px] border-none bg-transparent focus:ring-0 text-[10px] font-black uppercase tracking-widest shadow-none px-3 text-muted-foreground hover:text-foreground">
+                                                                    <SelectValue placeholder="Category" />
+                                                                </SelectTrigger>
+                                                                <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                                    <SelectItem value="all" className="text-[10px] font-black uppercase tracking-widest">All</SelectItem>
+                                                                    {categories.map((cat) => (
+                                                                        <SelectItem
+                                                                            key={cat.id}
+                                                                            value={cat.id}
+                                                                            className="text-[10px] font-black uppercase tracking-widest"
+                                                                        >
+                                                                            {cat.name}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+
+                                                            <div className="w-[1px] h-4 bg-gray-200 dark:bg-white/10 shrink-0" />
+
+                                                            <Select value={filterMonth} onValueChange={setFilterMonth}>
+                                                                <SelectTrigger className="h-8 min-w-[100px] border-none bg-transparent focus:ring-0 text-[10px] font-black uppercase tracking-widest shadow-none px-3 text-muted-foreground hover:text-foreground">
+                                                                    <SelectValue placeholder="Month" />
+                                                                </SelectTrigger>
+                                                                <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                                    {MONTHS.map((month, idx) => (
+                                                                        <SelectItem
+                                                                            key={month}
+                                                                            value={(idx + 1).toString().padStart(2, '0')}
+                                                                            className="text-[10px] font-black uppercase tracking-widest"
+                                                                        >
+                                                                            {month}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+
+                                                            <div className="w-[1px] h-4 bg-gray-200 dark:bg-white/10 shrink-0" />
+
+                                                            <Select value={filterYear} onValueChange={setFilterYear}>
+                                                                <SelectTrigger className="h-8 min-w-[80px] border-none bg-transparent focus:ring-0 text-[10px] font-black uppercase tracking-widest shadow-none px-3 text-muted-foreground hover:text-foreground">
+                                                                    <SelectValue placeholder="Year" />
+                                                                </SelectTrigger>
+                                                                <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                                    {years.map(year => (
+                                                                        <SelectItem
+                                                                            key={year}
+                                                                            value={year}
+                                                                            className="text-[10px] font-black uppercase tracking-widest"
+                                                                        >
+                                                                            {year}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+
+                                                        {/* Download Button */}
+                                                        <Button
+                                                            onClick={handleDownloadPDF}
+                                                            variant="outline"
+                                                            className="h-10 rounded-2xl border-dashed border-primary/30 hover:border-primary shrink-0 gap-2 text-[10px] font-black uppercase tracking-widest px-4 ml-auto"
+                                                        >
+                                                            <Download className="h-4 w-4" />
+                                                            <span>Export history</span>
+                                                            <span className="opacity-50">.pdf</span>
+                                                        </Button>
                                                     </div>
-                                                    <div className="min-w-0">
-                                                        <DialogTitle className="text-lg sm:text-xl font-black truncate">Transaction Ledger</DialogTitle>
-                                                        <p className="text-[10px] sm:text-xs text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                                                            {MONTHS[parseInt(filterMonth) - 1]} {filterYear}
+                                                </div>
+
+                                                <div className="flex-1 overflow-hidden px-4 sm:px-7">
+                                                    <LedgerList
+                                                        expenses={filteredExpenses}
+                                                        accounts={accounts}
+                                                        currencySymbol={currencySymbol}
+                                                        maxHeight="100%"
+                                                    />
+                                                </div>
+                                                {filteredExpenses.length > 0 && (
+                                                    <div className="mt-auto px-4 sm:px-7 pb-4 sm:pb-7 pt-3 sm:pt-4 border-t border-dashed border-gray-200 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="h-7 w-7 sm:h-9 sm:w-9 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                                                                <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                                                            </div>
+                                                            <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-muted-foreground">Snapshot Net Total</span>
+                                                        </div>
+                                                        <p className={cn(
+                                                            "text-xl sm:text-2xl font-black tracking-tighter",
+                                                            totalNet >= 0 ? "text-emerald-500" : "text-orange-500"
+                                                        )}>
+                                                            {totalNet >= 0 ? '+' : ''}{currencySymbol}{totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                         </p>
                                                     </div>
-                                                </div>
-                                                <Badge className="bg-orange-500 text-white border-none px-4 py-1 h-fit text-[10px] sm:text-xs font-black uppercase tracking-widest w-fit">Journal</Badge>
-                                            </DialogHeader>
-                                            <div className="flex-1 overflow-hidden">
-                                                <LedgerList
-                                                    expenses={filteredExpenses}
-                                                    accounts={accounts}
-                                                    currencySymbol={currencySymbol}
-                                                    maxHeight="100%"
-                                                />
-                                            </div>
-                                            {filteredExpenses.length > 0 && (
-                                                <div className="mt-auto pt-4 sm:pt-6 border-t border-dashed border-gray-200 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                                                            <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                                                        </div>
-                                                        <span className="text-[10px] sm:text-sm font-black uppercase tracking-widest text-muted-foreground">Snapshot Net Total</span>
-                                                    </div>
-                                                    <p className={cn(
-                                                        "text-2xl sm:text-3xl font-black tracking-tighter",
-                                                        totalNet >= 0 ? "text-emerald-500" : "text-orange-500"
-                                                    )}>
-                                                        {totalNet >= 0 ? '+' : ''}{currencySymbol}{totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </DialogContent>
-                                    </Dialog>
+                                                )}
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
                                 </div>
                             </div>
                         </CardHeader>

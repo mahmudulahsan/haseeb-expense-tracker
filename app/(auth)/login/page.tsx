@@ -61,7 +61,7 @@ export default function LoginPage() {
             } else if (data.needsPassword) {
                 setStep(3);
             } else {
-                router.push("/dashboard");
+                router.push("/");
                 router.refresh();
             }
         } catch (err) {
@@ -86,7 +86,7 @@ export default function LoginPage() {
             setError(result.error);
             setLoading(false);
         } else {
-            router.push("/dashboard");
+            router.push("/");
             router.refresh();
         }
     };
@@ -105,7 +105,7 @@ export default function LoginPage() {
             setError(result.error);
             setLoading(false);
         } else {
-            router.push("/dashboard");
+            router.push("/");
             router.refresh();
         }
     };

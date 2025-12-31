@@ -15,7 +15,8 @@ export async function generateZhipuToken(apiKey: string) {
     return token;
 }
 
-export async function parseTransactionWithAI(text: string, categories: any[], accounts: any[]) {
+export async function parseTransactionWithAI(text: string, categories: any[], accounts: any[], localDate?: string) {
+    const today = localDate || new Date().toISOString().split('T')[0];
     const apiKey = process.env.ZHIPU_AI_API_KEY;
     if (!apiKey) throw new Error("ZHIPU_AI_API_KEY is not set");
 
@@ -31,7 +32,7 @@ Extract the following fields in JSON format:
 - account: (string, match one of these if possible: ${accountNames})
 - type: (string, either 'expense' or 'income')
 - description: (string, brief summary)
-- date: (string, YYYY-MM-DD, defaults to today ${new Date().toISOString().split('T')[0]} if not mentioned)
+- date: (string, YYYY-MM-DD, defaults to today ${today} if not mentioned)
 
 IMPORTANT: Output ONLY the raw JSON object. Do not include markdown code blocks or any other text.`;
 
@@ -70,7 +71,8 @@ IMPORTANT: Output ONLY the raw JSON object. Do not include markdown code blocks 
     }
 }
 
-export async function getSmartInsights(expenses: any[], categories: any[], currencySymbol: string = "$") {
+export async function getSmartInsights(expenses: any[], categories: any[], currencySymbol: string = "$", localDate?: string) {
+    const today = localDate || new Date().toISOString().split('T')[0];
     const apiKey = process.env.ZHIPU_AI_API_KEY;
     if (!apiKey) throw new Error("ZHIPU_AI_API_KEY is not set");
 
@@ -119,7 +121,7 @@ Output ONLY the raw JSON array. No markdown.`;
 Total Expenses: ${totalSpent}
 Spending by Category: ${JSON.stringify(categorySummary)}
 Recent Activity: ${JSON.stringify(recentTransactions)}
-Current Date: ${new Date().toISOString().split('T')[0]}`;
+Current Date: ${today}`;
 
     const response = await fetch("https://open.bigmodel.cn/api/paas/v4/chat/completions", {
         method: "POST",

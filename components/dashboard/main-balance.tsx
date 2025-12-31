@@ -179,17 +179,17 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:flex items-center gap-6 mt-12 relative z-10">
-                    <div className="flex flex-col">
-                        <span className="text-sm font-medium opacity-60 text-black dark:text-white uppercase tracking-wider">Selected</span>
-                        <span className="text-xl font-bold text-black dark:text-white mt-1">
+                <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-12 relative z-10">
+                    <div className="flex flex-col min-w-[120px]">
+                        <span className="text-[10px] sm:text-sm font-medium opacity-60 text-black dark:text-white uppercase tracking-wider">Selected</span>
+                        <span className="text-lg sm:text-xl font-bold text-black dark:text-white mt-1">
                             {selectedAccountIds.length} / {accounts.length} Accounts
                         </span>
                     </div>
-                    <div className="h-10 w-px bg-black/10 dark:bg-white/10" />
-                    <div className="flex flex-col">
-                        <span className="text-sm font-medium opacity-60 text-black dark:text-white uppercase tracking-wider">Total Net</span>
-                        <span className="text-xl font-bold text-black dark:text-white mt-1">
+                    <div className="hidden sm:block h-10 w-px bg-black/10 dark:bg-white/10" />
+                    <div className="flex flex-col min-w-[120px]">
+                        <span className="text-[10px] sm:text-sm font-medium opacity-60 text-black dark:text-white uppercase tracking-wider">Total Net</span>
+                        <span className="text-lg sm:text-xl font-bold text-black dark:text-white mt-1">
                             {currencySymbol}{accounts.reduce((sum, acc) => sum + Number(acc.balance), 0).toLocaleString()}
                         </span>
                     </div>

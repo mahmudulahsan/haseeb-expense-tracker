@@ -26,9 +26,10 @@ import { cn } from "@/lib/utils";
 interface ProfileButtonProps {
     initialName?: string;
     initialCurrency?: string;
+    email?: string;
 }
 
-export function ProfileButton({ initialName, initialCurrency }: ProfileButtonProps) {
+export function ProfileButton({ initialName, initialCurrency, email }: ProfileButtonProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState(initialName || "");
@@ -89,7 +90,7 @@ export function ProfileButton({ initialName, initialCurrency }: ProfileButtonPro
                     </div>
                 </div>
             </DialogTrigger>
-            <DialogContent className="w-[95%] sm:max-w-[425px] p-0 overflow-hidden border-none bg-white dark:bg-white/5 max-h-[90vh] flex flex-col shadow-2xl rounded-[2.5rem]">
+            <DialogContent className="w-[95%] sm:max-w-[425px] p-0 overflow-hidden border-none bg-white dark:bg-white/5 backdrop-blur-xl max-h-[90vh] flex flex-col shadow-2xl rounded-[2.5rem]">
                 <DialogHeader className="p-8 pb-4 shrink-0">
                     <DialogTitle className="text-2xl font-black tracking-tight">Account Settings</DialogTitle>
                 </DialogHeader>
@@ -159,16 +160,21 @@ export function ProfileButton({ initialName, initialCurrency }: ProfileButtonPro
 
                             <div className="h-px bg-gray-100 dark:bg-white/5 w-full" />
 
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                disabled={loading}
-                                className="w-full h-14 rounded-[1.25rem] font-bold text-red-500 hover:bg-red-500/10 hover:text-red-600 transition-colors justify-start gap-3 px-5"
-                                onClick={handleLogout}
-                            >
-                                <LogOut className="h-5 w-5" />
-                                {loading && !name ? "Logging out..." : "Logout"}
-                            </Button>
+                            <div className="flex flex-col gap-4">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    disabled={loading}
+                                    className="w-full h-14 rounded-[1.25rem] font-bold text-red-500 hover:bg-red-500/10 hover:text-red-600 transition-colors justify-start gap-3 px-5"
+                                    onClick={handleLogout}
+                                >
+                                    <LogOut className="h-5 w-5" />
+                                    {loading && !name ? "Logging out..." : "Logout"}
+                                </Button>
+                                {email && (
+                                    <p className="text-[10px] font-bold text-muted-foreground/40 tracking-widest text-center">{email}</p>
+                                )}
+                            </div>
                         </TabsContent>
 
                         <TabsContent value="security" className="mt-0 space-y-6 focus-visible:outline-none">

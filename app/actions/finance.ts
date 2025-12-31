@@ -39,7 +39,7 @@ export async function createAccount(formData: FormData) {
         return { error: `Failed to create account: ${error.message}` };
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true };
 }
 
@@ -117,7 +117,7 @@ export async function createTransaction(formData: FormData) {
         // In production, use Supabase RPC or Database Triggers for atomicity.
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true };
 }
 
@@ -138,7 +138,7 @@ export async function deleteAccount(id: string) {
         return { error: "Failed to delete account" };
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true };
 }
 
@@ -190,7 +190,7 @@ export async function deleteTransaction(id: string) {
         }
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true };
 }
 
@@ -217,7 +217,7 @@ export async function createCategory(name: string, type: string = "expense", col
         return { error: "Failed to create category" };
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true, category: data };
 }
 
@@ -248,7 +248,7 @@ export async function updateProfile(formData: FormData) {
         return { error: `Failed to update profile: ${error.message}` };
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true };
 }
 
@@ -256,7 +256,7 @@ export async function signUserOut() {
     await logout();
     redirect("/login");
 }
-export async function voiceTransaction(text: string) {
+export async function voiceTransaction(text: string, localDate?: string) {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };
 
@@ -278,7 +278,7 @@ export async function voiceTransaction(text: string) {
     }
 
     try {
-        const aiResult = await parseTransactionWithAI(text, categories || [], accounts || []);
+        const aiResult = await parseTransactionWithAI(text, categories || [], accounts || [], localDate);
 
         // 2. Resolve account
         let account = accounts.find(a =>
@@ -307,7 +307,8 @@ export async function voiceTransaction(text: string) {
         formData.append("account_id", account.id);
         formData.append("type", aiResult.type || "expense");
         formData.append("description", aiResult.description || text);
-        formData.append("date", aiResult.date || new Date().toISOString().split('T')[0]);
+        formData.append("date", aiResult.date || localDate || new Date().toISOString().split('T')[0]);
+        // Note: new Date().toISOString() is UTC. If localDate is not provided, we fallback to UTC date.
 
         return await createTransaction(formData);
     } catch (error: any) {
@@ -315,7 +316,7 @@ export async function voiceTransaction(text: string) {
         return { error: error.message || "Failed to process voice transaction" };
     }
 }
-export async function parseVoiceTransaction(text: string) {
+export async function parseVoiceTransaction(text: string, localDate?: string) {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };
 
@@ -333,7 +334,7 @@ export async function parseVoiceTransaction(text: string) {
         .eq("user_id", session.user.id);
 
     try {
-        const aiResult = await parseTransactionWithAI(text, categories || [], accounts || []);
+        const aiResult = await parseTransactionWithAI(text, categories || [], accounts || [], localDate);
         return { success: true, aiResult };
     } catch (error: any) {
         console.error("Parse voice error:", error);
@@ -341,7 +342,7 @@ export async function parseVoiceTransaction(text: string) {
     }
 }
 
-export async function generateInsights(expenses: any[], categories: any[], currencySymbol: string = "$", forceRefresh: boolean = false) {
+export async function generateInsights(expenses: any[], categories: any[], currencySymbol: string = "$", forceRefresh: boolean = false, localDate?: string) {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };
 
@@ -380,7 +381,7 @@ export async function generateInsights(expenses: any[], categories: any[], curre
 
         // 2. Generate new insights
         console.log("AI INSIGHTS: Fetching fresh AI analysis...");
-        const insights = await getSmartInsights(expenses, categories, currencySymbol);
+        const insights = await getSmartInsights(expenses, categories, currencySymbol, localDate);
 
         // 3. Save/Update in DB
         // We MUST specify onConflict: 'user_id' because user_id is our unique identifier for caching

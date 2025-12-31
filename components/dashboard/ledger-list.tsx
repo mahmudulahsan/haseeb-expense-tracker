@@ -5,6 +5,7 @@ import { Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { DeleteTransactionButton } from "@/components/dashboard/delete-transaction-button";
+import { parseLocalDate } from "@/lib/date-utils";
 
 interface LedgerListProps {
     expenses: any[];
@@ -30,7 +31,7 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                     }
                 }
             }}
-            className={cn("space-y-2 overflow-y-auto custom-scrollbar mask-scroller smooth-scroll pr-2")}
+            className={cn("space-y-2 overflow-y-auto custom-scrollbar smooth-scroll pr-2")}
             style={{ maxHeight }}
         >
             <AnimatePresence mode="popLayout">
@@ -54,13 +55,13 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                 <motion.div
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
-                                    className="flex items-center gap-4 py-4 first:pt-0"
+                                    className="flex items-center gap-4 py-3 first:pt-0"
                                 >
                                     <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-gray-200 dark:via-white/10 to-transparent" />
                                     <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm">
                                         <Calendar className="h-3 w-3 text-primary/60" />
                                         <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">
-                                            {new Date(expense.date).toLocaleDateString('en-US', {
+                                            {parseLocalDate(expense.date).toLocaleDateString('en-US', {
                                                 month: 'short',
                                                 day: 'numeric',
                                                 year: 'numeric'
@@ -72,13 +73,13 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                             )}
                             <motion.div
                                 whileHover={{ x: 4, backgroundColor: "rgba(0,0,0,0.02)" }}
-                                className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-white/5 rounded-2xl transition-all border border-transparent hover:border-dashed hover:border-gray-200 dark:hover:border-white/20 group/item"
+                                className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded-2xl transition-all border border-transparent hover:border-dashed hover:border-gray-200 dark:hover:border-white/20 group/item"
                             >
                                 <div className="flex items-center gap-4">
                                     <motion.div
                                         whileHover={{ scale: 1.1, rotate: 5 }}
                                         className={cn(
-                                            "h-12 w-12 rounded-[1rem] shadow-sm flex items-center justify-center font-bold",
+                                            "h-10 w-10 rounded-[1rem] shadow-sm flex items-center justify-center font-bold text-sm",
                                             expense.type === 'income' ? "bg-emerald-500/10 text-emerald-600" : "bg-orange-500/10 text-orange-600"
                                         )}
                                     >
@@ -103,7 +104,7 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                         animate={{ scale: 1 }}
                                     >
                                         <p className={cn(
-                                            "font-black text-lg",
+                                            "font-black text-base sm:text-lg",
                                             expense.type === 'income' ? "text-emerald-500" : "text-orange-500"
                                         )}>
                                             {expense.type === 'income' ? '+' : '-'}{currencySymbol}{expense.amount.toFixed(2)}

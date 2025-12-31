@@ -22,6 +22,8 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SearchableSelect } from "@/components/dashboard/searchable-select";
+import { formatLocalDate } from "@/lib/date-utils";
 
 
 interface AddTransactionDialogProps {
@@ -44,7 +46,7 @@ export function AddTransactionDialog({ accounts, categories, currencySymbol = "$
     // Controlled inputs for AI pre-fill
     const [amount, setAmount] = useState("");
     const [description, setDescription] = useState("");
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(formatLocalDate());
 
     // AI Voice states
     const [isListening, setIsListening] = useState(false);
@@ -79,7 +81,7 @@ export function AddTransactionDialog({ accounts, categories, currencySymbol = "$
 
     async function handleVoiceParse(text: string) {
         setIsParsing(true);
-        const result = await parseVoiceTransaction(text);
+        const result = await parseVoiceTransaction(text, formatLocalDate());
         if (result.success && result.aiResult) {
             const ai = result.aiResult;
             setAiResult(ai);
@@ -175,7 +177,7 @@ export function AddTransactionDialog({ accounts, categories, currencySymbol = "$
             // Reset all fields when modal closes
             setAmount("");
             setDescription("");
-            setDate(new Date().toISOString().split('T')[0]);
+            setDate(formatLocalDate());
             setSelectedAccount("");
             setSelectedCategory("");
             setAiResult(null);
@@ -333,29 +335,31 @@ export function AddTransactionDialog({ accounts, categories, currencySymbol = "$
                         <div className="grid grid-cols-1 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Account</label>
-                                <Select value={selectedAccount} onValueChange={setSelectedAccount} required>
-                                    <SelectTrigger className="h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium">
-                                        <SelectValue placeholder="Select Account..." />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-2xl border-none shadow-2xl">
-                                        {accounts.map(acc => (
-                                            <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <SearchableSelect
+                                    options={accounts}
+                                    value={selectedAccount}
+                                    onValueChange={setSelectedAccount}
+                                    placeholder="Select Account..."
+                                />
                                 <input type="hidden" name="account_id" value={selectedAccount} required />
                             </div>
 
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center mb-1">
                                     <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Category</label>
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsCreatingCategory(!isCreatingCategory)}
-                                        className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline px-2 py-1 rounded-lg bg-primary/5"
-                                    >
-                                        {isCreatingCategory ? <><X className="h-3 w-3" /> Cancel</> : <><Plus className="h-3 w-3" /> New Category</>}
-                                    </button>
+                                    {!isCreatingCategory && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                // We can still use the dialog's existing creation logic
+                                                // but let the SearchableSelect handle the search
+                                                setIsCreatingCategory(true);
+                                            }}
+                                            className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline px-2 py-1 rounded-lg bg-primary/5"
+                                        >
+                                            <Plus className="h-3 w-3" /> New Category
+                                        </button>
+                                    )}
                                 </div>
 
                                 {isCreatingCategory ? (
@@ -373,27 +377,37 @@ export function AddTransactionDialog({ accounts, categories, currencySymbol = "$
                                             }}
                                             autoFocus
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={handleAddCategory}
-                                            disabled={loading || !newCategoryName}
-                                            className="bg-primary text-white h-12 w-12 rounded-2xl flex items-center justify-center hover:opacity-90 disabled:opacity-50 transition-opacity"
-                                        >
-                                            <Check className="h-5 w-5" />
-                                        </button>
+                                        <div className="flex gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={handleAddCategory}
+                                                disabled={loading || !newCategoryName}
+                                                className="bg-primary text-white h-12 w-12 rounded-2xl flex items-center justify-center hover:opacity-90 disabled:opacity-50 transition-opacity"
+                                            >
+                                                <Check className="h-5 w-5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCreatingCategory(false)}
+                                                className="bg-gray-100 dark:bg-white/10 text-muted-foreground h-12 w-12 rounded-2xl flex items-center justify-center hover:opacity-90 transition-opacity"
+                                            >
+                                                <X className="h-5 w-5" />
+                                            </button>
+                                        </div>
                                     </div>
                                 ) : (
                                     <>
-                                        <Select value={selectedCategory} onValueChange={setSelectedCategory} required>
-                                            <SelectTrigger className="h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium">
-                                                <SelectValue placeholder="Select Category..." />
-                                            </SelectTrigger>
-                                            <SelectContent className="rounded-2xl border-none shadow-2xl max-h-[200px] overflow-y-auto">
-                                                {filteredCategories.map(cat => (
-                                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <SearchableSelect
+                                            options={filteredCategories}
+                                            value={selectedCategory}
+                                            onValueChange={setSelectedCategory}
+                                            placeholder="Select Category..."
+                                            onCreate={(name) => {
+                                                setNewCategoryName(name);
+                                                setIsCreatingCategory(true);
+                                            }}
+                                            createLabel="Add category"
+                                        />
                                         <input type="hidden" name="category_id" value={selectedCategory} required />
                                     </>
                                 )}

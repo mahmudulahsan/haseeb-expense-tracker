@@ -48,13 +48,13 @@ export default async function DashboardLayout({
                         <Calculator />
                         <ThemeToggle />
                         <div className="shrink-0 scale-90 sm:scale-100 origin-right">
-                            <ProfileButton initialName={profile?.display_name} initialCurrency={profile?.currency} />
+                            <ProfileButton initialName={profile?.display_name} initialCurrency={profile?.currency} email={user.email} />
                         </div>
                     </div>
                 </nav>
             </header>
 
-            <main className="flex-1 w-full max-w-7xl mx-auto px-8 pt-10 pb-24">
+            <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pt-10 pb-24">
                 {children}
             </main>
         </div>

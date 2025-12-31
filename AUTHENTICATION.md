@@ -43,7 +43,7 @@ OTP Verification
     ↓
 JWT Session Created
     ↓
-Redirect to Dashboard
+Redirect to Root
 ```
 
 ### 2. Forgot Password Flow
@@ -59,7 +59,7 @@ Set New Password Screen
     ↓
 Password Updated & Login
     ↓
-Redirect to Dashboard
+Redirect to Root
 ```
 
 ---

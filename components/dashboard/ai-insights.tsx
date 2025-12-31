@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { generateInsights } from "@/app/actions/finance";
 import { cn } from "@/lib/utils";
+import { formatLocalDate, parseLocalDate } from "@/lib/date-utils";
 
 const ICON_MAP: Record<string, any> = {
     Heart,
@@ -56,7 +57,7 @@ export function AIInsights({ expenses, categories, currencySymbol = "$" }: AIIns
         setIsLoading(true);
         setError(null);
         try {
-            const result = await generateInsights(expenses, categories, currencySymbol, force);
+            const result = await generateInsights(expenses, categories, currencySymbol, force, formatLocalDate());
             if (result.success && result.insights) {
                 setInsights(result.insights);
                 setLastUpdated(result.lastUpdated);
@@ -85,21 +86,21 @@ export function AIInsights({ expenses, categories, currencySymbol = "$" }: AIIns
             <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/10 blur-[100px] rounded-full" />
             <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-500/10 blur-[100px] rounded-full" />
 
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-7">
                 <div className="space-y-1">
-                    <CardTitle className="text-2xl font-black flex items-center gap-2">
+                    <CardTitle className="text-xl sm:text-2xl font-black flex items-center gap-2">
                         <Sparkles className="h-6 w-6 text-indigo-500 animate-pulse" />
                         Smart AI Insights
                     </CardTitle>
-                    <div className="flex items-center gap-2">
-                        <p className="text-sm text-muted-foreground font-medium">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-xs sm:text-sm text-muted-foreground font-medium">
                             Personalized analysis of your spending behavior
                         </p>
                         {lastUpdated && (
                             <>
                                 <span className="text-muted-foreground/30">•</span>
                                 <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/60">
-                                    Updated {new Date(lastUpdated).toLocaleDateString()}
+                                    Updated {parseLocalDate(lastUpdated).toLocaleDateString()}
                                 </span>
                             </>
                         )}

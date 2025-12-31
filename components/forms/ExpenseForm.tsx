@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createExpense } from "@/app/actions/expenses";
 import { useRouter } from "next/navigation";
+import { formatLocalDate } from "@/lib/date-utils";
 
 export function ExpenseForm({ categories }: { categories: any[] }) {
     const [loading, setLoading] = useState(false);
@@ -79,7 +80,7 @@ export function ExpenseForm({ categories }: { categories: any[] }) {
                     name="date"
                     type="date"
                     required
-                    defaultValue={new Date().toISOString().split("T")[0]}
+                    defaultValue={formatLocalDate()}
                     className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                 />
             </div>
