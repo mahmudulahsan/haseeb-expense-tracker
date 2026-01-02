@@ -15,6 +15,7 @@ import { DynamicIcon } from "@/components/ui/dynamic-icon";
 import { DeleteAccountButton } from "@/components/dashboard/delete-account-button";
 import { DeleteTransactionButton } from "@/components/dashboard/delete-transaction-button";
 import { AddAccountDialog } from "@/components/dashboard/add-account-dialog";
+import { SpendingHeatmap } from "@/components/dashboard/spending-heatmap";
 import {
     Select,
     SelectContent,
@@ -108,6 +109,27 @@ export function HomeContent({
     const [detailedAccount, setDetailedAccount] = useState<any>(null);
     const [accountFilterMonth, setAccountFilterMonth] = useState<string>((now.getMonth() + 1).toString().padStart(2, '0'));
     const [accountFilterYear, setAccountFilterYear] = useState<string>(now.getFullYear().toString());
+
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [addDialogInitialData, setAddDialogInitialData] = useState<any>(null);
+
+    const handleOpenChange = (open: boolean) => {
+        setIsAddDialogOpen(open);
+        if (!open) {
+            setAddDialogInitialData(null);
+        }
+    };
+
+    const handleAddAgain = (expense: any) => {
+        setAddDialogInitialData({
+            amount: expense.amount,
+            description: expense.description,
+            category_id: expense.category_id,
+            account_id: expense.account_id,
+            type: expense.type
+        });
+        setIsAddDialogOpen(true);
+    };
 
     // Generate years from data or defaults
     const years = useMemo(() => {
@@ -235,8 +257,21 @@ export function HomeContent({
                 <div className="lg:col-span-8 h-full">
                     <Card className="bg-[#FFD966] dark:bg-primary/10 border-none shadow-xl overflow-hidden h-full relative group">
                         <CardContent className="p-6 sm:p-10">
-                            <MainBalance accounts={accounts} categories={categories} greeting={personalizedGreeting} currencySymbol={currencySymbol}>
-                                <AddTransactionDialog accounts={accounts} categories={categories} currencySymbol={currencySymbol} />
+                            <MainBalance
+                                accounts={accounts}
+                                categories={categories}
+                                greeting={personalizedGreeting}
+                                currencySymbol={currencySymbol}
+                                expenses={expenses}
+                            >
+                                <AddTransactionDialog
+                                    accounts={accounts}
+                                    categories={categories}
+                                    currencySymbol={currencySymbol}
+                                    open={isAddDialogOpen}
+                                    onOpenChange={handleOpenChange}
+                                    initialData={addDialogInitialData}
+                                />
                             </MainBalance>
                         </CardContent>
                     </Card>
@@ -273,7 +308,7 @@ export function HomeContent({
                         <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
                             <div className="flex-1 min-w-0">
                                 <CardTitle className="text-lg font-black truncate">My Accounts</CardTitle>
-                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em] mt-0.5 truncate">Asset Portfolio</p>
+                                {/* <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em] mt-0.5 truncate">Cash/Bank/Savings etc</p> */}
                             </div>
                             <AddAccountDialog variant="compact" />
                         </CardHeader>
@@ -577,6 +612,7 @@ export function HomeContent({
                                                         expenses={filteredExpenses}
                                                         accounts={accounts}
                                                         currencySymbol={currencySymbol}
+                                                        onAddAgain={handleAddAgain}
                                                         maxHeight="100%"
                                                     />
                                                 </div>
@@ -609,6 +645,7 @@ export function HomeContent({
                                 accounts={accounts}
                                 currencySymbol={currencySymbol}
                                 maxHeight="560px"
+                                onAddAgain={handleAddAgain}
                             />
 
                             {filteredExpenses.length > 0 && (
@@ -714,6 +751,7 @@ export function HomeContent({
                                         expenses={accountDetailedExpenses}
                                         accounts={accounts}
                                         currencySymbol={currencySymbol}
+                                        onAddAgain={handleAddAgain}
                                         maxHeight="100%"
                                     />
                                 </div>

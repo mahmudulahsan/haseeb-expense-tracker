@@ -15,11 +15,13 @@ import {
     Shield,
     Wallet,
     Loader2,
-    RefreshCw
+    RefreshCw,
+    Lock
 } from "lucide-react";
 import { generateInsights } from "@/app/actions/finance";
 import { cn } from "@/lib/utils";
 import { formatLocalDate, parseLocalDate } from "@/lib/date-utils";
+import { motion } from "framer-motion";
 
 const ICON_MAP: Record<string, any> = {
     Heart,
@@ -52,7 +54,7 @@ export function AIInsights({ expenses, categories, currencySymbol = "$" }: AIIns
     const [error, setError] = useState<string | null>(null);
 
     const fetchInsights = async (force: boolean = false) => {
-        if (expenses.length === 0) return;
+        if (expenses.length < 10) return;
 
         setIsLoading(true);
         setError(null);
@@ -72,13 +74,56 @@ export function AIInsights({ expenses, categories, currencySymbol = "$" }: AIIns
     };
 
     useEffect(() => {
-        // Fetch insights on mount if not already fetched
-        if (expenses.length > 0 && insights.length === 0) {
+        // Fetch insights on mount if not already fetched and has enough data
+        if (expenses.length >= 10 && insights.length === 0) {
             fetchInsights();
         }
     }, [expenses.length]);
 
-    if (expenses.length === 0) return null;
+    if (expenses.length < 10) {
+        return (
+            <Card className="border-none shadow-2xl bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 backdrop-blur-sm overflow-hidden relative">
+                {/* Background Glow */}
+                <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/10 blur-[100px] rounded-full" />
+                <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-500/10 blur-[100px] rounded-full" />
+
+                <CardContent className="py-12 flex flex-col items-center text-center space-y-6">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full" />
+                        <div className="relative z-10 bg-white dark:bg-zinc-900 p-4 rounded-3xl shadow-xl">
+                            <Sparkles className="h-12 w-12 text-indigo-500 animate-pulse" />
+                            <Lock className="h-5 w-5 text-indigo-600 absolute -top-1 -right-1" />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2 max-w-md">
+                        <h3 className="text-2xl font-black">AI Insights Locked</h3>
+                        <p className="text-muted-foreground font-medium">
+                            To provide accurate and meaningful analysis, our AI needs at least <span className="text-indigo-500 font-bold">10 transactions</span> to understand your spending patterns.
+                        </p>
+                    </div>
+
+                    <div className="w-full max-w-xs space-y-3">
+                        <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-indigo-500/60">
+                            <span>Progress</span>
+                            <span>{expenses.length} / 10 Transactions</span>
+                        </div>
+                        <div className="h-3 w-full bg-indigo-500/10 rounded-full overflow-hidden p-0.5 border border-indigo-500/10">
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.min((expenses.length / 10) * 100, 100)}%` }}
+                                transition={{ duration: 1, ease: "easeOut" }}
+                                className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                            />
+                        </div>
+                        <p className="text-[10px] font-bold text-indigo-500/40 uppercase tracking-widest">
+                            {10 - expenses.length} more to go
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <Card className="border-none shadow-2xl bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 backdrop-blur-sm overflow-hidden relative">

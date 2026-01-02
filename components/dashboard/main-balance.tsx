@@ -13,16 +13,18 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { SpendingHeatmap } from "@/components/dashboard/spending-heatmap";
 
 interface MainBalanceProps {
     accounts: any[];
     categories: any[];
     greeting: string;
     currencySymbol?: string;
+    expenses: any[];
     children: React.ReactNode; // For the AddTransactionDialog
 }
 
-export function MainBalance({ accounts, categories, greeting, currencySymbol = "$", children }: MainBalanceProps) {
+export function MainBalance({ accounts, categories, greeting, currencySymbol = "$", expenses, children }: MainBalanceProps) {
     // Load selected accounts from localStorage or default to all accounts
     const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
         if (typeof window !== 'undefined') {
@@ -179,19 +181,26 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-12 relative z-10">
-                    <div className="flex flex-col min-w-[120px]">
-                        <span className="text-[10px] sm:text-sm font-medium opacity-60 text-black dark:text-white uppercase tracking-wider">Selected</span>
-                        <span className="text-lg sm:text-xl font-bold text-black dark:text-white mt-1">
-                            {selectedAccountIds.length} / {accounts.length} Accounts
-                        </span>
+                <div className="flex flex-wrap items-end justify-between gap-6 mt-auto relative z-10 pb-2">
+                    <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+                        <div className="flex flex-col min-w-[120px]">
+                            <span className="text-[10px] sm:text-sm font-medium opacity-60 text-black dark:text-white uppercase tracking-wider">Selected</span>
+                            <span className="text-lg sm:text-xl font-bold text-black dark:text-white mt-1">
+                                {selectedAccountIds.length} / {accounts.length} Accounts
+                            </span>
+                        </div>
+                        <div className="hidden sm:block h-10 w-px bg-black/10 dark:bg-white/10" />
+                        <div className="flex flex-col min-w-[120px]">
+                            <span className="text-[10px] sm:text-sm font-medium opacity-60 text-black dark:text-white uppercase tracking-wider">Total Net</span>
+                            <span className="text-lg sm:text-xl font-bold text-black dark:text-white mt-1">
+                                {currencySymbol}{accounts.reduce((sum, acc) => sum + Number(acc.balance), 0).toLocaleString()}
+                            </span>
+                        </div>
                     </div>
-                    <div className="hidden sm:block h-10 w-px bg-black/10 dark:bg-white/10" />
-                    <div className="flex flex-col min-w-[120px]">
-                        <span className="text-[10px] sm:text-sm font-medium opacity-60 text-black dark:text-white uppercase tracking-wider">Total Net</span>
-                        <span className="text-lg sm:text-xl font-bold text-black dark:text-white mt-1">
-                            {currencySymbol}{accounts.reduce((sum, acc) => sum + Number(acc.balance), 0).toLocaleString()}
-                        </span>
+
+                    {/* Minimal Grid Heatmap (Bottom Right) */}
+                    <div className="shrink-0 group/heatmap transition-all duration-300">
+                        <SpendingHeatmap expenses={expenses} currencySymbol={currencySymbol} variant="minimal" />
                     </div>
                 </div>
             </div>

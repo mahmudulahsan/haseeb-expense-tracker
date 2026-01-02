@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CircleUser, LogOut, Settings, User, KeyRound, ShieldCheck, DollarSign } from "lucide-react";
+import { CircleUser, LogOut, Settings, User, KeyRound, ShieldCheck, DollarSign, Eye, EyeOff } from "lucide-react";
 import { updateProfile, signUserOut } from "@/app/actions/finance";
 import { changePassword } from "@/app/actions/auth";
 import { useRouter } from "next/navigation";
@@ -35,6 +35,9 @@ export function ProfileButton({ initialName, initialCurrency, email }: ProfileBu
     const [name, setName] = useState(initialName || "");
     const [currency, setCurrency] = useState(initialCurrency || "USD");
     const [error, setError] = useState<string | null>(null);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const router = useRouter();
 
     async function handleProfileUpdate(e: React.FormEvent<HTMLFormElement>) {
@@ -190,10 +193,17 @@ export function ProfileButton({ initialName, initialCurrency, email }: ProfileBu
                                             <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <input
                                                 name="currentPassword"
-                                                type="password"
-                                                className="w-full h-12 bg-gray-50 dark:bg-white/5 border-none rounded-xl pl-12 pr-4 focus:ring-2 focus:ring-primary outline-none font-medium text-sm transition-all"
+                                                type={showCurrentPassword ? "text" : "password"}
+                                                className="w-full h-12 bg-gray-50 dark:bg-white/5 border-none rounded-xl pl-12 pr-12 focus:ring-2 focus:ring-primary outline-none font-medium text-sm transition-all"
                                                 placeholder="••••••••"
                                             />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                                            >
+                                                {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </button>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
@@ -202,11 +212,18 @@ export function ProfileButton({ initialName, initialCurrency, email }: ProfileBu
                                             <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <input
                                                 name="newPassword"
-                                                type="password"
+                                                type={showNewPassword ? "text" : "password"}
                                                 required
-                                                className="w-full h-12 bg-gray-50 dark:bg-white/5 border-none rounded-xl pl-12 pr-4 focus:ring-2 focus:ring-primary outline-none font-medium text-sm transition-all"
+                                                className="w-full h-12 bg-gray-50 dark:bg-white/5 border-none rounded-xl pl-12 pr-12 focus:ring-2 focus:ring-primary outline-none font-medium text-sm transition-all"
                                                 placeholder="••••••••"
                                             />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                                            >
+                                                {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </button>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
@@ -215,11 +232,18 @@ export function ProfileButton({ initialName, initialCurrency, email }: ProfileBu
                                             <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <input
                                                 name="confirmPassword"
-                                                type="password"
+                                                type={showConfirmPassword ? "text" : "password"}
                                                 required
-                                                className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-xl pl-12 pr-4 focus:ring-2 focus:ring-primary outline-none font-medium text-sm transition-all"
+                                                className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-xl pl-12 pr-12 focus:ring-2 focus:ring-primary outline-none font-medium text-sm transition-all"
                                                 placeholder="••••••••"
                                             />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                                            >
+                                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

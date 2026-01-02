@@ -30,10 +30,29 @@ interface AddTransactionDialogProps {
     accounts: any[];
     categories: any[];
     currencySymbol?: string;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    initialData?: {
+        amount?: number;
+        description?: string;
+        category_id?: string;
+        account_id?: string;
+        type?: "income" | "expense";
+    };
 }
 
-export function AddTransactionDialog({ accounts, categories, currencySymbol = "$" }: AddTransactionDialogProps) {
-    const [open, setOpen] = useState(false);
+export function AddTransactionDialog({
+    accounts,
+    categories,
+    currencySymbol = "$",
+    open: controlledOpen,
+    onOpenChange: controlledOnOpenChange,
+    initialData
+}: AddTransactionDialogProps) {
+    const [internalOpen, setInternalOpen] = useState(false);
+    const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+    const setOpen = controlledOnOpenChange || setInternalOpen;
+
     const [loading, setLoading] = useState(false);
     const [type, setType] = useState<"income" | "expense">("expense");
     const [isCreatingCategory, setIsCreatingCategory] = useState(false);
@@ -47,6 +66,18 @@ export function AddTransactionDialog({ accounts, categories, currencySymbol = "$
     const [amount, setAmount] = useState("");
     const [description, setDescription] = useState("");
     const [date, setDate] = useState(formatLocalDate());
+
+    // Effect to handle initialData
+    useEffect(() => {
+        if (open && initialData) {
+            if (initialData.amount !== undefined) setAmount(initialData.amount.toString());
+            if (initialData.description !== undefined) setDescription(initialData.description);
+            if (initialData.category_id !== undefined) setSelectedCategory(initialData.category_id);
+            if (initialData.account_id !== undefined) setSelectedAccount(initialData.account_id);
+            if (initialData.type !== undefined) setType(initialData.type);
+            setDate(formatLocalDate()); // Always set to today as per requirements
+        }
+    }, [open, initialData]);
 
     // AI Voice states
     const [isListening, setIsListening] = useState(false);

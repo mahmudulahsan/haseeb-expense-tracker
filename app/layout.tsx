@@ -3,7 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
-    title: "Haseeb - Premium Expense Tracker",
+    title: "Haseeb",
     description: "Track your expenses with style",
     manifest: "/manifest.json",
     icons: {

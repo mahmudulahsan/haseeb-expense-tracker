@@ -19,7 +19,8 @@ export async function getExpenses() {
       )
     `)
         .eq("user_id", session.user.id)
-        .order("date", { ascending: false });
+        .order("date", { ascending: false })
+        .order("created_at", { ascending: false });
 
     if (error) {
         console.error("Error fetching expenses:", error);

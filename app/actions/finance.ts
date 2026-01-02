@@ -194,6 +194,62 @@ export async function deleteTransaction(id: string) {
     return { success: true };
 }
 
+export async function deleteTransactionsBulk(ids: string[]) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    // 1. Get all transactions to adjust balances
+    const { data: transactions, error: fetchError } = await supabase
+        .from("expenses")
+        .select("id, amount, type, account_id")
+        .in("id", ids)
+        .eq("user_id", session.user.id);
+
+    if (fetchError || !transactions) return { error: "Transactions not found" };
+
+    // 2. Delete transactions
+    const { error: deleteError } = await supabase
+        .from("expenses")
+        .delete()
+        .in("id", ids)
+        .eq("user_id", session.user.id);
+
+    if (deleteError) {
+        console.error("Delete transactions error:", deleteError);
+        return { error: "Failed to delete transactions" };
+    }
+
+    // 3. Group by account to minimize updates
+    const balanceAdjustments: Record<string, number> = {};
+    for (const tx of transactions) {
+        if (!tx.account_id) continue;
+        const amount = Number(decrypt(tx.amount));
+        const adjustment = tx.type === "income" ? -amount : amount;
+        balanceAdjustments[tx.account_id] = (balanceAdjustments[tx.account_id] || 0) + adjustment;
+    }
+
+    // 4. Update balances
+    for (const [accountId, adjustment] of Object.entries(balanceAdjustments)) {
+        const { data: account } = await supabase
+            .from("accounts")
+            .select("balance")
+            .eq("id", accountId)
+            .single();
+
+        if (account) {
+            await supabase
+                .from("accounts")
+                .update({ balance: Number(account.balance) + adjustment })
+                .eq("id", accountId);
+        }
+    }
+
+    revalidatePath("/");
+    return { success: true };
+}
+
 export async function createCategory(name: string, type: string = "expense", color: string = "#94a3b8") {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };

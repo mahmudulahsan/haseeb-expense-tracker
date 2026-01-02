@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PiggyBank, Mail, KeyRound, ArrowRight } from "lucide-react";
+import { PiggyBank, Mail, KeyRound, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { setPassword, loginWithPassword } from "@/app/actions/auth";
 
 export default function LoginPage() {
@@ -13,6 +13,8 @@ export default function LoginPage() {
     const [otp, setOtp] = useState("");
     const [password, setPasswordState] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Set Password, 4: Login Password
     const [isForgot, setIsForgot] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -149,16 +151,16 @@ export default function LoginPage() {
 
                     <div className="text-center space-y-2 mb-10">
                         <h2 className="text-3xl font-black tracking-tight">
-                            {step === 1 && "Welcome Back"}
+                            {step === 1 && "Sign In"}
                             {step === 2 && "Verify Identification"}
                             {step === 3 && "Reset Your Password"}
                             {step === 4 && "Enter Password"}
                         </h2>
                         <p className="text-muted-foreground font-medium">
-                            {step === 1 && "Experience the premium expense tracking"}
+                            {step === 1 && "Track Expense with Haseeb"}
                             {step === 2 && `Enter the code we sent to ${email}`}
                             {step === 3 && "Create a new strong password for your account"}
-                            {step === 4 && "Enter your password to access your dashboard"}
+                            {step === 4 && "to access your dashboard"}
                         </p>
                     </div>
 
@@ -221,24 +223,38 @@ export default function LoginPage() {
                                 <div className="relative">
                                     <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                     <input
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         required
-                                        className="w-full h-14 bg-gray-100/50 dark:bg-white/5 border-none rounded-2xl px-12 focus:ring-2 focus:ring-primary outline-none transition-all font-medium"
+                                        className="w-full h-14 bg-gray-100/50 dark:bg-white/5 border-none rounded-2xl px-12 focus:ring-2 focus:ring-primary outline-none transition-all font-medium pr-12"
                                         placeholder="New Password"
                                         value={password}
                                         onChange={(e) => setPasswordState(e.target.value)}
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                                    >
+                                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    </button>
                                 </div>
                                 <div className="relative">
                                     <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                     <input
-                                        type="password"
+                                        type={showConfirmPassword ? "text" : "password"}
                                         required
-                                        className="w-full h-14 bg-gray-100/50 dark:bg-white/5 border-none rounded-2xl px-12 focus:ring-2 focus:ring-primary outline-none transition-all font-medium"
+                                        className="w-full h-14 bg-gray-100/50 dark:bg-white/5 border-none rounded-2xl px-12 focus:ring-2 focus:ring-primary outline-none transition-all font-medium pr-12"
                                         placeholder="Confirm Password"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    </button>
                                 </div>
                             </div>
 
@@ -253,13 +269,20 @@ export default function LoginPage() {
                             <div className="relative">
                                 <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                 <input
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     required
-                                    className="w-full h-14 bg-gray-100/50 dark:bg-white/5 border-none rounded-2xl px-12 focus:ring-2 focus:ring-primary outline-none transition-all font-medium"
+                                    className="w-full h-14 bg-gray-100/50 dark:bg-white/5 border-none rounded-2xl px-12 focus:ring-2 focus:ring-primary outline-none transition-all font-medium pr-12"
                                     placeholder="Enter your password"
                                     value={password}
                                     onChange={(e) => setPasswordState(e.target.value)}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
                             </div>
 
                             <div className="space-y-4">
@@ -289,12 +312,6 @@ export default function LoginPage() {
                         </form>
                     )}
                 </CardContent>
-
-                <div className="px-10 pb-8 text-center">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                        Secure Authentication with Reset Capability
-                    </p>
-                </div>
             </Card>
         </div>
     );
