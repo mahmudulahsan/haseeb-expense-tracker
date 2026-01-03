@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, Settings2, CheckCircle2, Circle } from "lucide-react";
+import { Wallet, Settings2, CheckCircle2, Circle, HandHeart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SpendingHeatmap } from "@/components/dashboard/spending-heatmap";
+import { parseLocalDate } from "@/lib/date-utils";
 
 interface MainBalanceProps {
     accounts: any[];
@@ -21,10 +22,11 @@ interface MainBalanceProps {
     greeting: string;
     currencySymbol?: string;
     expenses: any[];
+    zakatTarget: number;
     children: React.ReactNode; // For the AddTransactionDialog
 }
 
-export function MainBalance({ accounts, categories, greeting, currencySymbol = "$", expenses, children }: MainBalanceProps) {
+export function MainBalance({ accounts, categories, greeting, currencySymbol = "$", expenses, zakatTarget, children }: MainBalanceProps) {
     // Load selected accounts from localStorage or default to all accounts
     const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
         if (typeof window !== 'undefined') {
@@ -63,6 +65,29 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
         .filter((acc) => selectedAccountIds.includes(acc.id))
         .map((acc) => acc.name)
         .join(", ");
+
+    const zakatStats = useMemo(() => {
+        if (zakatTarget <= 0) return null;
+
+        const currentYear = new Date().getFullYear();
+        const zakatCategoryIds = categories
+            .filter(c => c.name.toLowerCase().includes("zakat"))
+            .map(c => c.id);
+
+        const paid = expenses
+            .filter(e => {
+                const isZakat = zakatCategoryIds.includes(e.category_id);
+                if (!isZakat) return false;
+                const expenseDate = typeof e.date === 'string' ? parseLocalDate(e.date) : e.date;
+                return expenseDate.getFullYear() === currentYear;
+            })
+            .reduce((acc, curr) => acc + curr.amount, 0);
+
+        const progress = Math.min(100, (paid / zakatTarget) * 100);
+        const remaining = Math.max(0, zakatTarget - paid);
+
+        return { paid, progress, remaining, currentYear };
+    }, [expenses, categories, zakatTarget]);
 
     return (
         <div className="relative h-full">
@@ -198,9 +223,77 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
                         </div>
                     </div>
 
-                    {/* Minimal Grid Heatmap (Bottom Right) */}
-                    <div className="shrink-0 group/heatmap transition-all duration-300">
-                        <SpendingHeatmap expenses={expenses} currencySymbol={currencySymbol} variant="minimal" />
+                    <div className="flex items-center gap-6 self-end">
+                        {/* Zakat Circular Progress (Pie Chart style) */}
+                        {zakatStats && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="group/zakat relative cursor-pointer"
+                                onClick={() => {
+                                    const url = new URL(window.location.href);
+                                    url.searchParams.set("tab", "zakat");
+                                    window.history.pushState({}, "", url.toString());
+                                    window.dispatchEvent(new PopStateEvent('popstate'));
+                                }}
+                            >
+                                <div className="flex flex-col gap-2.5">
+                                    <div className="flex items-center justify-center gap-4 px-0.5">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-black/40 dark:text-white/40">Zakat {zakatStats.currentYear}</span>
+                                    </div>
+                                    <div className="relative h-[82px] w-[82px] sm:h-[104px] sm:w-[104px] flex items-center justify-center">
+                                        <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+                                            {/* Background Circle */}
+                                            <circle
+                                                cx="50"
+                                                cy="50"
+                                                r="42"
+                                                fill="transparent"
+                                                stroke="currentColor"
+                                                strokeWidth="12"
+                                                className="text-black/5 dark:text-white/5"
+                                            />
+                                            {/* Progress Circle with Glow */}
+                                            <motion.circle
+                                                cx="50"
+                                                cy="50"
+                                                r="42"
+                                                fill="transparent"
+                                                stroke="#10b981" // emerald-500
+                                                strokeWidth="12"
+                                                strokeDasharray="263.89"
+                                                strokeDashoffset={263.89 - (263.89 * zakatStats.progress) / 100}
+                                                strokeLinecap="round"
+                                                initial={{ strokeDashoffset: 263.89 }}
+                                                animate={{ strokeDashoffset: 263.89 - (263.89 * zakatStats.progress) / 100 }}
+                                                transition={{ duration: 1.5, ease: "easeOut" }}
+                                            />
+                                        </svg>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400">
+                                                {Math.round(zakatStats.progress)}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Hover Tooltip */}
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none opacity-0 group-hover/zakat:opacity-100 transition-all duration-300 z-[100] translate-y-1 group-hover/zakat:translate-y-0">
+                                    <div className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 py-1.5 px-2.5 rounded-lg shadow-2xl flex flex-col items-center min-w-[100px] border border-white/10 dark:border-black/5">
+                                        <span className="text-[8px] font-black uppercase tracking-widest opacity-50 mb-0.5">Remaining</span>
+                                        <span className="text-[11px] font-black whitespace-nowrap">
+                                            {currencySymbol}{zakatStats.remaining.toLocaleString()}
+                                        </span>
+                                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-zinc-900 dark:bg-zinc-100 rotate-45" />
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* Minimal Grid Heatmap (Bottom Right) */}
+                        <div className="shrink-0 group/heatmap transition-all duration-300">
+                            <SpendingHeatmap expenses={expenses} currencySymbol={currencySymbol} variant="minimal" />
+                        </div>
                     </div>
                 </div>
             </div>

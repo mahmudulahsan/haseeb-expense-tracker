@@ -46,6 +46,7 @@ export default async function DashboardPage() {
             currencySymbol={currencySymbol}
             totalIncome={totalIncome}
             totalSpent={totalSpent}
+            zakatTarget={profile?.zakat_target || 0}
         />
     );
 }

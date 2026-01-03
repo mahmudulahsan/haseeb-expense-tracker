@@ -147,7 +147,7 @@ export function SpendingHeatmap({ expenses, currencySymbol = "$", variant = "def
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none opacity-0 group-hover/sq:opacity-100 transition-all duration-300 z-[100] translate-y-1 group-hover/sq:translate-y-0">
                                     <div className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 py-1 px-2 rounded-md shadow-2xl flex flex-col items-center min-w-[70px] border border-white/10 dark:border-black/5">
                                         <span className="text-[7px] font-black uppercase tracking-widest opacity-50 mb-0.5">
-                                            {heatmapData.monthName} {dayData.day}
+                                            {heatmapData.monthName.slice(0, 3)} {dayData.day}
                                         </span>
                                         <span className="text-[9px] font-black whitespace-nowrap">
                                             {currencySymbol}{dayData.amount.toLocaleString()}

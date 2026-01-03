@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { HomeContent } from "./home-content";
 import { StatisticsContent } from "./statistics-content";
+import { ZakatContent } from "./zakat-content";
 
 interface DashboardTabsProps {
     expenses: any[];
@@ -13,6 +14,7 @@ interface DashboardTabsProps {
     currencySymbol: string;
     totalIncome: number;
     totalSpent: number;
+    zakatTarget: number;
 }
 
 export function DashboardTabs(props: DashboardTabsProps) {
@@ -29,13 +31,20 @@ export function DashboardTabs(props: DashboardTabsProps) {
 
     return (
         <div className="w-full">
-            {activeTab === "home" ? (
-                <HomeContent {...props} />
-            ) : (
+            {activeTab === "home" && <HomeContent {...props} />}
+            {activeTab === "statistic" && (
                 <StatisticsContent
                     expenses={props.expenses}
                     categories={props.categories}
                     currencySymbol={props.currencySymbol}
+                />
+            )}
+            {activeTab === "zakat" && (
+                <ZakatContent
+                    currencySymbol={props.currencySymbol}
+                    zakatTarget={props.zakatTarget}
+                    expenses={props.expenses}
+                    categories={props.categories}
                 />
             )}
         </div>

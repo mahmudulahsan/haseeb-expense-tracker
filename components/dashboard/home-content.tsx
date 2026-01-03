@@ -8,6 +8,7 @@ import autoTable from "jspdf-autotable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
 import { StatCard } from "@/components/dashboard/stat-card";
 import { AddTransactionDialog } from "@/components/dashboard/add-transaction-dialog";
 import { MainBalance } from "@/components/dashboard/main-balance";
@@ -30,7 +31,8 @@ import {
     Calendar,
     Filter,
     Maximize2,
-    Download
+    Download,
+
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LedgerList } from "@/components/dashboard/ledger-list";
@@ -51,6 +53,7 @@ interface HomeContentProps {
     currencySymbol: string;
     totalIncome: number;
     totalSpent: number;
+    zakatTarget: number;
 }
 
 const MONTHS = [
@@ -65,7 +68,8 @@ export function HomeContent({
     greeting,
     currencySymbol,
     totalIncome,
-    totalSpent
+    totalSpent,
+    zakatTarget
 }: HomeContentProps) {
     const timeGreeting = getTimeBasedGreeting();
     const personalizedGreeting = greeting.startsWith("Hey,")
@@ -249,8 +253,12 @@ export function HomeContent({
         }, 0);
     }, [accountDetailedExpenses]);
 
+
+
     return (
         <div className="space-y-8">
+
+
             {/* Top Grid: Balance and Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Main Card (Primary Account) */}
@@ -263,6 +271,7 @@ export function HomeContent({
                                 greeting={personalizedGreeting}
                                 currencySymbol={currencySymbol}
                                 expenses={expenses}
+                                zakatTarget={zakatTarget}
                             >
                                 <AddTransactionDialog
                                     accounts={accounts}

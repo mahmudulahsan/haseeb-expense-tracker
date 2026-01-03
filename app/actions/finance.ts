@@ -312,6 +312,29 @@ export async function signUserOut() {
     await logout();
     redirect("/login");
 }
+
+export async function updateZakatTarget(amount: number) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+        .from("profiles")
+        .update({
+            zakat_target: amount,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", session.user.id);
+
+    if (error) {
+        console.error("Zakat update error:", error);
+        return { error: `Failed to update zakat target: ${error.message}` };
+    }
+
+    revalidatePath("/");
+    return { success: true };
+}
 export async function voiceTransaction(text: string, localDate?: string) {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };

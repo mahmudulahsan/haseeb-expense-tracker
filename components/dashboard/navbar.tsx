@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
     LayoutDashboard,
-    PiggyBank,
     BarChart3,
+    HandHeart,
     Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
     { icon: LayoutDashboard, label: "Home", tab: "home" },
     { icon: BarChart3, label: "Statistic", tab: "statistic" },
+    { icon: HandHeart, label: "Zakat", tab: "zakat" },
 ];
 
 export function Navbar() {
