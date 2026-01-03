@@ -41,7 +41,7 @@ export function SearchBar() {
         });
     }, [query, pathname, replace, searchParams]);
 
-    if (activeTab === "statistic") return null;
+    if (activeTab === "statistic" || activeTab === "zakat") return null;
 
     return (
         <>

@@ -339,7 +339,7 @@ export function HomeContent({
                                             setAccountFilterYear(filterYear);
                                         }}
                                         className={cn(
-                                            "relative p-4 rounded-[1.5rem] flex flex-col justify-between aspect-[1.1/1] min-h-[140px] group transition-all duration-300 border-2 border-transparent hover:border-dashed hover:border-primary/30 cursor-pointer overflow-hidden shadow-sm",
+                                            "relative p-3 sm:p-4 rounded-[1.5rem] flex flex-col justify-between aspect-[2.2/1] sm:aspect-[1.1/1] min-h-[100px] sm:min-h-[140px] group transition-all duration-300 border-2 border-transparent hover:border-dashed hover:border-primary/30 cursor-pointer overflow-hidden shadow-sm",
                                             acc.type === 'Savings' ? "bg-[#E2F0D9] dark:bg-emerald-950/40" :
                                                 acc.type === 'Investment' ? "bg-[#FFF2CC] dark:bg-amber-950/40" :
                                                     "bg-gray-100 dark:bg-white/10"
