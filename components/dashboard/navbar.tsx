@@ -40,7 +40,7 @@ export function Navbar() {
                         className={cn(
                             "flex items-center gap-1.5 sm:gap-2 rounded-xl px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold sm:font-medium transition-all cursor-pointer relative z-30",
                             isActive
-                                ? "bg-black text-white dark:bg-white dark:text-black shadow-lg"
+                                ? "bg-black text-white dark:bg-white dark:text-black shadow-sm"
                                 : "text-gray-500 hover:text-black dark:hover:text-white"
                         )}
                     >

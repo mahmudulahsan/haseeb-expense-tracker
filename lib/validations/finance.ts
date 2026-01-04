@@ -17,6 +17,7 @@ export const transactionSchema = z.object({
     type: z.enum(["income", "expense"]),
     description: z.string().max(1000).optional().or(z.literal("")),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+    time: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format").optional(),
 });
 
 export type TransactionSchema = z.infer<typeof transactionSchema>;

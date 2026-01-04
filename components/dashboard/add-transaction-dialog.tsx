@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SearchableSelect } from "@/components/dashboard/searchable-select";
-import { formatLocalDate } from "@/lib/date-utils";
+import { formatLocalDate, formatLocalTime } from "@/lib/date-utils";
 
 
 interface AddTransactionDialogProps {
@@ -66,6 +66,7 @@ export function AddTransactionDialog({
     const [amount, setAmount] = useState("");
     const [description, setDescription] = useState("");
     const [date, setDate] = useState(formatLocalDate());
+    const [time, setTime] = useState(formatLocalTime());
 
     // Effect to handle initialData
     useEffect(() => {
@@ -76,6 +77,7 @@ export function AddTransactionDialog({
             if (initialData.account_id !== undefined) setSelectedAccount(initialData.account_id);
             if (initialData.type !== undefined) setType(initialData.type);
             setDate(formatLocalDate()); // Always set to today as per requirements
+            setTime(formatLocalTime());
         }
     }, [open, initialData]);
 
@@ -209,6 +211,7 @@ export function AddTransactionDialog({
             setAmount("");
             setDescription("");
             setDate(formatLocalDate());
+            setTime(formatLocalTime());
             setSelectedAccount("");
             setSelectedCategory("");
             setAiResult(null);
@@ -459,16 +462,29 @@ export function AddTransactionDialog({
 
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Date</label>
-                            <input
-                                name="date"
-                                type="date"
-                                value={date}
-                                onChange={(e) => setDate(e.target.value)}
-                                required
-                                className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Date</label>
+                                <input
+                                    name="date"
+                                    type="date"
+                                    value={date}
+                                    onChange={(e) => setDate(e.target.value)}
+                                    required
+                                    className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Time</label>
+                                <input
+                                    name="time"
+                                    type="time"
+                                    value={time}
+                                    onChange={(e) => setTime(e.target.value)}
+                                    required
+                                    className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium"
+                                />
+                            </div>
                         </div>
 
 

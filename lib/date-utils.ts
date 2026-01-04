@@ -15,6 +15,28 @@ export function formatLocalDate(date: Date | string = new Date()): string {
 }
 
 /**
+ * Formats current time or given Date into HH:mm (24h) format.
+ */
+export function formatLocalTime(date: Date = new Date()): string {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
+/**
+ * Formats a time string (HH:mm or HH:mm:ss) into a user-friendly 12h format.
+ */
+export function formatDisplayTime(timeStr: string): string {
+    if (!timeStr) return "";
+    const [hours, minutes] = timeStr.split(':');
+    const h = parseInt(hours);
+    const m = minutes.padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${m} ${ampm}`;
+}
+
+/**
  * Parses a date string and returns a Date object that respects the local timezone
  * even if the string is in YYYY-MM-DD format (which often defaults to UTC).
  */

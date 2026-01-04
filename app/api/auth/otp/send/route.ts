@@ -53,13 +53,18 @@ export async function POST(request: Request) {
                 html: `
                     <div style="font-family: sans-serif; padding: 40px; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
                         <div style="text-align: center; margin-bottom: 30px;">
-                            <div style="background: #FF5722; width: 60px; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: auto; color: white; font-size: 30px;">🐷</div>
-                            <h2 style="margin-top: 20px; color: #111;">Welcome to Haseeb</h2>
-                            <p style="color: #666;">Experience the premium expense tracking</p>
+                            <div style="background: #f97316; width: 64px; height: 64px; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin: auto; color: white; box-shadow: 0 8px 16px rgba(249, 115, 22, 0.25);">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;">
+                                    <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/>
+                                    <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
+                                </svg>
+                            </div>
+                            <h2 style="margin-top: 24px; color: #111; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Welcome to Haseeb</h2>
+                            <p style="color: #666; font-size: 16px; margin-top: 4px;">Experience the premium expense tracking</p>
                         </div>
                         <p style="font-size: 16px; line-height: 1.6;">Your OTP:</p>
-                        <div style="background: #fdfdfd; border: 2px dashed #FF5722; padding: 20px; text-align: center; border-radius: 15px; margin: 30px 0;">
-                            <h1 style="color: #FF5722; font-size: 48px; letter-spacing: 15px; margin: 0; font-family: monospace;">${code}</h1>
+                        <div style="background: #fdfdfd; border: 2px dashed #f97316; padding: 20px; text-align: center; border-radius: 15px; margin: 30px 0;">
+                            <h1 style="color: #f97316; font-size: 48px; letter-spacing: 15px; margin: 0; font-family: monospace;">${code}</h1>
                         </div>
                         <p style="font-size: 14px; color: #999; text-align: center;">This code will expire in 10 minutes.</p>
                         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />

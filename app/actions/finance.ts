@@ -56,6 +56,7 @@ export async function createTransaction(formData: FormData) {
         type: formData.get("type"),
         description: formData.get("description"),
         date: formData.get("date"),
+        time: formData.get("time"),
     };
 
     // Filter nulls to undefined for Zod
@@ -387,6 +388,7 @@ export async function voiceTransaction(text: string, localDate?: string) {
         formData.append("type", aiResult.type || "expense");
         formData.append("description", aiResult.description || text);
         formData.append("date", aiResult.date || localDate || new Date().toISOString().split('T')[0]);
+        formData.append("time", new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })); // Default to current local time
         // Note: new Date().toISOString() is UTC. If localDate is not provided, we fallback to UTC date.
 
         return await createTransaction(formData);

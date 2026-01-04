@@ -6,7 +6,7 @@ import { Calendar, Check, Trash2, X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { DeleteTransactionButton } from "@/components/dashboard/delete-transaction-button";
-import { parseLocalDate } from "@/lib/date-utils";
+import { parseLocalDate, formatDisplayTime } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { deleteTransactionsBulk } from "@/app/actions/finance";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -112,127 +112,137 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                         }
                     }
                 }}
-                className={cn("space-y-2 overflow-y-auto custom-scrollbar smooth-scroll pr-2 flex-1")}
+                className={cn("overflow-y-auto custom-scrollbar smooth-scroll pr-2 flex-1")}
                 style={{ maxHeight }}
             >
-                <AnimatePresence mode="popLayout">
-                    {expenses.map((expense: any) => {
-                        const isSelected = selectedIds.includes(expense.id);
-                        const showDivider = expense.date !== lastDate;
-                        lastDate = expense.date;
-                        return (
-                            <motion.div
-                                key={expense.id}
-                                layout
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="space-y-2"
-                            >
-                                {showDivider && (
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className="flex items-center gap-4 py-3 first:pt-0"
-                                    >
-                                        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-gray-200 dark:via-white/10 to-transparent" />
-                                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm">
-                                            <Calendar className="h-3 w-3 text-primary/60" />
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">
-                                                {parseLocalDate(expense.date).toLocaleDateString('en-US', {
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                    year: 'numeric'
-                                                })}
-                                            </span>
-                                        </div>
-                                        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-gray-200 dark:via-white/10 to-transparent" />
-                                    </motion.div>
-                                )}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-2 pb-4">
+                    <AnimatePresence mode="popLayout">
+                        {expenses.map((expense: any) => {
+                            const isSelected = selectedIds.includes(expense.id);
+                            const showDivider = expense.date !== lastDate;
+                            lastDate = expense.date;
+                            return (
                                 <motion.div
-                                    whileHover={{ x: 4 }}
-                                    onClick={(e) => toggleSelect(expense.id, e)}
-                                    className={cn(
-                                        "flex items-center justify-between p-2 rounded-2xl transition-all border border-transparent cursor-pointer group/item",
-                                        isSelected
-                                            ? "bg-primary/10 border-primary/30 dark:bg-primary/20"
-                                            : "hover:bg-gray-50 dark:hover:bg-white/5 hover:border-dashed hover:border-gray-200 dark:hover:border-white/20"
-                                    )}
+                                    key={expense.id}
+                                    layout
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="space-y-2"
                                 >
-                                    <div className="flex items-center gap-4 flex-1">
-                                        <div
-                                            className={cn(
-                                                "h-5 w-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0",
-                                                isSelected
-                                                    ? "bg-primary border-primary"
-                                                    : "border-gray-200 dark:border-white/10 opacity-0 group-hover/item:opacity-100"
-                                            )}
-                                        >
-                                            <Check className={cn("h-3 w-3 text-white transition-transform", isSelected ? "scale-100" : "scale-0")} />
-                                        </div>
-
+                                    {showDivider && (
                                         <motion.div
-                                            whileHover={{ scale: 1.1, rotate: 5 }}
-                                            className={cn(
-                                                "h-10 w-10 rounded-[1rem] shadow-sm flex items-center justify-center font-bold text-sm shrink-0",
-                                                expense.type === 'income' ? "bg-emerald-500/10 text-emerald-600" : "bg-orange-500/10 text-orange-600"
-                                            )}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            className="col-span-1 lg:col-span-2 flex items-center gap-4 py-3 first:pt-0"
                                         >
-                                            {expense.categories?.name?.charAt(0) || "U"}
+                                            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-gray-200 dark:via-white/10 to-transparent" />
+                                            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm">
+                                                <Calendar className="h-3 w-3 text-primary/60" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">
+                                                    {parseLocalDate(expense.date).toLocaleDateString('en-US', {
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                        year: 'numeric'
+                                                    })}
+                                                </span>
+                                            </div>
+                                            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-gray-200 dark:via-white/10 to-transparent" />
                                         </motion.div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="font-bold truncate">{expense.description}</p>
-                                            <div className="flex items-center gap-2 overflow-hidden">
-                                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest truncate shrink-0">
-                                                    {accounts.find(a => a.id === expense.account_id)?.name || "External"}
-                                                </p>
-                                                <span className="text-[8px] opacity-30 shrink-0">•</span>
-                                                <p className="text-[10px] text-primary/60 font-bold uppercase tracking-widest truncate">
-                                                    {expense.categories?.name || "Uncategorized"}
-                                                </p>
+                                    )}
+                                    <motion.div
+                                        whileHover={{ x: 4 }}
+                                        onClick={(e) => toggleSelect(expense.id, e)}
+                                        className={cn(
+                                            "flex items-center justify-between p-2 rounded-2xl transition-all border border-transparent cursor-pointer group/item",
+                                            isSelected
+                                                ? "bg-primary/10 border-primary/30 dark:bg-primary/20"
+                                                : "hover:bg-gray-50 dark:hover:bg-white/5 hover:border-dashed hover:border-gray-200 dark:hover:border-white/20"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-4 flex-1">
+                                            <div
+                                                className={cn(
+                                                    "h-5 w-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0",
+                                                    isSelected
+                                                        ? "bg-primary border-primary"
+                                                        : "border-gray-200 dark:border-white/10 opacity-0 group-hover/item:opacity-100"
+                                                )}
+                                            >
+                                                <Check className={cn("h-3 w-3 text-white transition-transform", isSelected ? "scale-100" : "scale-0")} />
+                                            </div>
+
+                                            <motion.div
+                                                whileHover={{ scale: 1.1, rotate: 5 }}
+                                                className={cn(
+                                                    "h-10 w-10 rounded-[1rem] shadow-sm flex items-center justify-center font-bold text-sm shrink-0",
+                                                    expense.type === 'income' ? "bg-emerald-500/10 text-emerald-600" : "bg-orange-500/10 text-orange-600"
+                                                )}
+                                            >
+                                                {expense.categories?.name?.charAt(0) || "U"}
+                                            </motion.div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-bold truncate">{expense.description}</p>
+                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest truncate shrink-0">
+                                                        {accounts.find(a => a.id === expense.account_id)?.name || "External"}
+                                                    </p>
+                                                    <span className="text-[8px] opacity-30 shrink-0">•</span>
+                                                    <p className="text-[10px] text-primary/60 font-bold uppercase tracking-widest truncate">
+                                                        {expense.categories?.name || "Uncategorized"}
+                                                    </p>
+                                                    {expense.time && (
+                                                        <>
+                                                            <span className="text-[8px] opacity-30 shrink-0">•</span>
+                                                            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest shrink-0">
+                                                                {formatDisplayTime(expense.time)}
+                                                            </p>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="text-right flex items-center gap-3">
-                                        <motion.div
-                                            initial={{ scale: 0.9 }}
-                                            animate={{ scale: 1 }}
-                                        >
-                                            <p className={cn(
-                                                "font-black text-base sm:text-lg",
-                                                expense.type === 'income' ? "text-emerald-500" : "text-orange-500"
-                                            )}>
-                                                {expense.type === 'income' ? '+' : '-'}{currencySymbol}{expense.amount.toFixed(2)}
-                                            </p>
-                                            <Badge variant="outline" className="text-[9px] uppercase tracking-tighter h-5 px-2">
-                                                {expense.type}
-                                            </Badge>
-                                        </motion.div>
-                                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                            {onAddAgain && (
-                                                <motion.div
-                                                    whileHover={{ scale: 1.15 }}
-                                                    whileTap={{ scale: 0.9 }}
-                                                >
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => onAddAgain(expense)}
-                                                        className="h-8 w-8 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all duration-300 shadow-lg shadow-primary/10 border border-primary/20"
-                                                        title="Add Again"
+                                        <div className="text-right flex items-center gap-3">
+                                            <motion.div
+                                                initial={{ scale: 0.9 }}
+                                                animate={{ scale: 1 }}
+                                            >
+                                                <p className={cn(
+                                                    "font-black text-base sm:text-lg",
+                                                    expense.type === 'income' ? "text-emerald-500" : "text-orange-500"
+                                                )}>
+                                                    {expense.type === 'income' ? '+' : '-'}{currencySymbol}{expense.amount.toFixed(2)}
+                                                </p>
+                                                <Badge variant="outline" className="text-[9px] uppercase tracking-tighter h-5 px-2">
+                                                    {expense.type}
+                                                </Badge>
+                                            </motion.div>
+                                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                {onAddAgain && (
+                                                    <motion.div
+                                                        whileHover={{ scale: 1.15 }}
+                                                        whileTap={{ scale: 0.9 }}
                                                     >
-                                                        <Plus className="h-4 w-4" />
-                                                    </Button>
-                                                </motion.div>
-                                            )}
-                                            <DeleteTransactionButton id={expense.id} />
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => onAddAgain(expense)}
+                                                            className="h-8 w-8 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all duration-300 shadow-lg shadow-primary/10 border border-primary/20"
+                                                            title="Add Again"
+                                                        >
+                                                            <Plus className="h-4 w-4" />
+                                                        </Button>
+                                                    </motion.div>
+                                                )}
+                                                <DeleteTransactionButton id={expense.id} />
+                                            </div>
                                         </div>
-                                    </div>
+                                    </motion.div>
                                 </motion.div>
-                            </motion.div>
-                        );
-                    })}
-                </AnimatePresence>
+                            );
+                        })}
+                    </AnimatePresence>
+                </div>
             </motion.div>
 
             <ConfirmDialog

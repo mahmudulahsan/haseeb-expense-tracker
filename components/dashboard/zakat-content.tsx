@@ -142,6 +142,36 @@ export function ZakatContent({
         );
     }, [creditCardDebt, carLoan, businessLoan, familyLoan, otherLoans]);
 
+    const breakdown = useMemo(() => {
+        const fields = [
+            { label: "Cash in Hand", value: Number(cashInHand), icon: Coins, color: "text-emerald-400" },
+            { label: "Cash in Bank", value: Number(cashInBank), icon: Coins, color: "text-emerald-400" },
+            { label: "Gold Value", value: Number(goldValue), icon: Landmark, color: "text-amber-400" },
+            { label: "Silver Value", value: Number(silverValue), icon: Landmark, color: "text-amber-400" },
+            { label: "Stock Market", value: Number(stockMarket), icon: Briefcase, color: "text-blue-400" },
+            { label: "Other Investments", value: Number(otherInvestments), icon: Briefcase, color: "text-blue-400" },
+            { label: "Rental Income", value: Number(rentalIncome), icon: Home, color: "text-purple-400" },
+            { label: "Other Property", value: Number(otherProperty), icon: Home, color: "text-purple-400" },
+            { label: "Business Savings", value: Number(businessSavings), icon: Receipt, color: "text-rose-400" },
+            { label: "Business Inventory", value: Number(businessInventory), icon: Receipt, color: "text-rose-400" },
+            { label: "Agriculture", value: Number(agricultureIncome), icon: Sprout, color: "text-lime-400" },
+            { label: "Pension", value: Number(pensionIncome), icon: Info, color: "text-slate-400" },
+            { label: "Receivables", value: Number(receivables), icon: Info, color: "text-slate-400" },
+            { label: "Other Capital", value: Number(otherCapital), icon: Info, color: "text-slate-400" },
+            { label: "Credit Card Debt", value: Number(creditCardDebt), icon: AlertCircle, color: "text-orange-400", isNegative: true },
+            { label: "Car Loan", value: Number(carLoan), icon: AlertCircle, color: "text-orange-400", isNegative: true },
+            { label: "Business Loan", value: Number(businessLoan), icon: AlertCircle, color: "text-orange-400", isNegative: true },
+            { label: "Family Loan", value: Number(familyLoan), icon: AlertCircle, color: "text-orange-400", isNegative: true },
+            { label: "Other Loans", value: Number(otherLoans), icon: AlertCircle, color: "text-orange-400", isNegative: true },
+        ];
+        return fields.filter(f => f.value > 0);
+    }, [
+        cashInHand, cashInBank, goldValue, silverValue, stockMarket,
+        otherInvestments, rentalIncome, otherProperty, businessSavings,
+        businessInventory, pensionIncome, receivables, otherCapital, agricultureIncome,
+        creditCardDebt, carLoan, businessLoan, familyLoan, otherLoans
+    ]);
+
     const netWealth = Math.max(0, totalAssets - totalLiabilities);
     const zakatAmount = netWealth * 0.025;
 
@@ -308,62 +338,85 @@ export function ZakatContent({
                             </motion.div>
 
                             {zakatTarget > 0 && zakatStats && (
-                                <div className="bg-white/5 rounded-3xl p-5 border border-white/10 flex items-center justify-between gap-4">
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Active Target ({zakatStats.currentYear})</span>
-                                            <button
-                                                onClick={async () => {
-                                                    if (confirm("Are you sure you want to reset your Zakat target?")) {
-                                                        await updateZakatTarget(0);
-                                                    }
-                                                }}
-                                                className="text-white/40 hover:text-white/100 transition-colors ml-2"
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </button>
+                                <>
+                                    <div className="bg-white/5 rounded-3xl p-5 border border-white/10 flex items-center justify-between gap-4">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Active Target ({zakatStats.currentYear})</span>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (confirm("Are you sure you want to reset your Zakat target?")) {
+                                                            await updateZakatTarget(0);
+                                                        }
+                                                    }}
+                                                    className="text-white/40 hover:text-white/100 transition-colors ml-2"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                            <div className="text-2xl font-black">{currencySymbol}{zakatTarget.toLocaleString()}</div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                                <span className="text-[10px] font-bold opacity-60 uppercase tracking-widest">
+                                                    {currencySymbol}{zakatStats.paid.toLocaleString()} Paid
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="text-2xl font-black">{currencySymbol}{zakatTarget.toLocaleString()}</div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                            <span className="text-[10px] font-bold opacity-60 uppercase tracking-widest">
-                                                {currencySymbol}{zakatStats.paid.toLocaleString()} Paid
-                                            </span>
+
+                                        {/* Pie Chart */}
+                                        <div className="relative h-20 w-20 flex items-center justify-center shrink-0">
+                                            <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+                                                <circle
+                                                    cx="50"
+                                                    cy="50"
+                                                    r="40"
+                                                    fill="transparent"
+                                                    stroke="currentColor"
+                                                    strokeWidth="12"
+                                                    className="text-white/5"
+                                                />
+                                                <motion.circle
+                                                    cx="50"
+                                                    cy="50"
+                                                    r="40"
+                                                    fill="transparent"
+                                                    stroke="#10b981"
+                                                    strokeWidth="12"
+                                                    strokeDasharray="251.32"
+                                                    strokeDashoffset={251.32 - (251.32 * zakatStats.progress) / 100}
+                                                    strokeLinecap="round"
+                                                    initial={{ strokeDashoffset: 251.32 }}
+                                                    animate={{ strokeDashoffset: 251.32 - (251.32 * zakatStats.progress) / 100 }}
+                                                    transition={{ duration: 1.5, ease: "easeOut" }}
+                                                />
+                                            </svg>
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                <span className="text-[10px] font-black">{Math.round(zakatStats.progress)}%</span>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Pie Chart */}
-                                    <div className="relative h-20 w-20 flex items-center justify-center shrink-0">
-                                        <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
-                                            <circle
-                                                cx="50"
-                                                cy="50"
-                                                r="40"
-                                                fill="transparent"
-                                                stroke="currentColor"
-                                                strokeWidth="12"
-                                                className="text-white/5"
-                                            />
-                                            <motion.circle
-                                                cx="50"
-                                                cy="50"
-                                                r="40"
-                                                fill="transparent"
-                                                stroke="#10b981"
-                                                strokeWidth="12"
-                                                strokeDasharray="251.32"
-                                                strokeDashoffset={251.32 - (251.32 * zakatStats.progress) / 100}
-                                                strokeLinecap="round"
-                                                initial={{ strokeDashoffset: 251.32 }}
-                                                animate={{ strokeDashoffset: 251.32 - (251.32 * zakatStats.progress) / 100 }}
-                                                transition={{ duration: 1.5, ease: "easeOut" }}
-                                            />
-                                        </svg>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                            <span className="text-[10px] font-black">{Math.round(zakatStats.progress)}%</span>
+                                    {breakdown.length > 0 && (
+                                        <div className="space-y-2 pt-2 border-t border-white/5">
+                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-3 px-1">Wealth Breakdown</p>
+                                            <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                                                {breakdown.map((item, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between bg-white/5 rounded-2xl p-3 border border-white/5 hover:bg-white/10 transition-colors group/item">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={cn("h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center transition-transform group-hover/item:scale-110", item.color)}>
+                                                                <item.icon className="h-4 w-4" />
+                                                            </div>
+                                                            <span className="text-[10px] sm:text-[11px] font-bold opacity-70 group-hover/item:opacity-100 transition-opacity">{item.label}</span>
+                                                        </div>
+                                                        <span className={cn("text-[11px] sm:text-xs font-black tracking-tight", item.isNegative ? "text-orange-400" : "text-white")}>
+                                                            {item.isNegative ? "-" : ""}{currencySymbol}{item.value.toLocaleString()}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    )}
+                                </>
                             )}
 
                             <Button

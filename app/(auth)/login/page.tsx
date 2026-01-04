@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PiggyBank, Mail, KeyRound, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Wallet, Mail, KeyRound, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { setPassword, loginWithPassword } from "@/app/actions/auth";
 
 export default function LoginPage() {
@@ -144,8 +144,8 @@ export default function LoginPage() {
             <Card className="w-full max-w-md border-none shadow-2xl bg-white/80 dark:bg-black/80 backdrop-blur-xl relative z-10 p-4 transition-all duration-500">
                 <CardContent className="pt-10 pb-6 px-6 sm:px-10">
                     <div className="flex justify-center mb-8">
-                        <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary/30">
-                            <PiggyBank className="h-10 w-10" />
+                        <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary/30 rotate-3 hover:rotate-0 transition-transform duration-300">
+                            <Wallet className="h-10 w-10" />
                         </div>
                     </div>
 

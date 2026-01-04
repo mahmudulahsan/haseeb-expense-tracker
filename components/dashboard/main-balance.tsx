@@ -55,14 +55,17 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
         );
     };
 
-    const displayBalance = useMemo(() => {
-        return accounts
-            .filter((acc) => selectedAccountIds.includes(acc.id))
-            .reduce((sum, acc) => sum + Number(acc.balance), 0);
+    const filteredAccounts = useMemo(() => {
+        return accounts.filter((acc) => selectedAccountIds.includes(acc.id));
     }, [accounts, selectedAccountIds]);
 
-    const activeAccountNames = accounts
-        .filter((acc) => selectedAccountIds.includes(acc.id))
+    const filteredCount = filteredAccounts.length;
+
+    const displayBalance = useMemo(() => {
+        return filteredAccounts.reduce((sum, acc) => sum + Number(acc.balance), 0);
+    }, [filteredAccounts]);
+
+    const activeAccountNames = filteredAccounts
         .map((acc) => acc.name)
         .join(", ");
 
@@ -109,13 +112,13 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
                         </div>
                         <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="bg-white/50 border-none px-3 py-1.5 backdrop-blur-md whitespace-nowrap text-[10px] md:text-xs">
-                                {selectedAccountIds.length === accounts.length
+                                {filteredCount === accounts.length
                                     ? "Net Balance"
-                                    : selectedAccountIds.length === 0
+                                    : filteredCount === 0
                                         ? "No Selection"
-                                        : selectedAccountIds.length === 1
-                                            ? activeAccountNames
-                                            : `${selectedAccountIds.length} Accounts`}
+                                        : filteredCount === 1
+                                            ? filteredAccounts[0]?.name
+                                            : `${filteredCount} Accounts`}
                             </Badge>
 
                             <Dialog>
@@ -211,7 +214,7 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
                         <div className="flex flex-col min-w-[100px] sm:min-w-[120px]">
                             <span className="text-[10px] sm:text-sm font-medium opacity-60 text-black dark:text-white uppercase tracking-wider">Selected</span>
                             <span className="text-base sm:text-xl font-bold text-black dark:text-white mt-0.5 sm:mt-1">
-                                {selectedAccountIds.length} / {accounts.length} Accounts
+                                {filteredCount} / {accounts.length} Accounts
                             </span>
                         </div>
                         <div className="hidden sm:block h-10 w-px bg-black/10 dark:bg-white/10" />
