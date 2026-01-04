@@ -622,7 +622,7 @@ export function HomeContent({
                                                         accounts={accounts}
                                                         currencySymbol={currencySymbol}
                                                         onAddAgain={handleAddAgain}
-                                                        maxHeight="65vh"
+                                                        maxHeight="100%"
                                                     />
                                                 </div>
                                                 {filteredExpenses.length > 0 && (
@@ -653,7 +653,7 @@ export function HomeContent({
                                 expenses={filteredExpenses}
                                 accounts={accounts}
                                 currencySymbol={currencySymbol}
-                                maxHeight="700px"
+                                maxHeight="560px"
                                 onAddAgain={handleAddAgain}
                             />
 
@@ -761,7 +761,7 @@ export function HomeContent({
                                         accounts={accounts}
                                         currencySymbol={currencySymbol}
                                         onAddAgain={handleAddAgain}
-                                        maxHeight="65vh"
+                                        maxHeight="100%"
                                     />
                                 </div>
 
