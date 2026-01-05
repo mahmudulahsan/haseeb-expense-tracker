@@ -53,10 +53,12 @@ export async function POST(request: Request) {
                 html: `
                     <div style="font-family: sans-serif; padding: 40px; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
                         <div style="text-align: center; margin-bottom: 30px;">
-                            <div style="background: #f97316; width: 64px; height: 64px; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin: auto; color: white; box-shadow: 0 8px 16px rgba(249, 115, 22, 0.25);">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;">
-                                    <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/>
-                                    <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
+                            <div style="margin: auto; width: 64px; height: 64px;">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                                    <rect width="24" height="24" rx="6" fill="#000000"/>
+                                    <path d="M7 5V19M17 5V19" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+                                    <path d="M7 12H17" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.2"/>
+                                    <circle cx="12" cy="12" r="4.5" fill="#f97316" stroke="#ffffff" stroke-width="1.2"/>
                                 </svg>
                             </div>
                             <h2 style="margin-top: 24px; color: #111; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Welcome to Haseeb</h2>

@@ -28,9 +28,10 @@ export async function parseTransactionWithAI(text: string, categories: any[], ac
     const systemPrompt = `You are a financial assistant for an app called Haseeb. Your goal is to extract transaction details from user voice transcripts. 
 Extract the following fields in JSON format:
 - amount: (number)
-- category: (string, match one of these if possible: ${categoryNames})
-- account: (string, match one of these if possible: ${accountNames})
-- type: (string, either 'expense' or 'income')
+- category: (string, match one of these if possible: ${categoryNames}. Ignore for transfers)
+- account: (string, match one of these if possible: ${accountNames}. For transfers, this is the SOURCE)
+- toAccount: (string, ONLY for transfers, match one of these: ${accountNames}. This is the DESTINATION)
+- type: (string, either 'expense', 'income', or 'transfer')
 - description: (string, brief summary)
 - date: (string, YYYY-MM-DD, defaults to today ${today} if not mentioned)
 

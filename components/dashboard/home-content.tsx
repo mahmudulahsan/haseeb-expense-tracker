@@ -194,7 +194,7 @@ export function HomeContent({
 
         const doc = new jsPDF();
         const monthName = MONTHS[parseInt(filterMonth) - 1];
-        const title = `${monthName} ${filterYear} - Transaction Ledger`;
+        const title = `${monthName} ${filterYear} - Ledger`;
         const currencyShort = currencySymbol === '৳' ? 'TK' : currencySymbol;
 
         // Add Header (Compact)
@@ -364,7 +364,7 @@ export function HomeContent({
                             </div>
                         </CardHeader>
                         <CardContent className="p-4 pt-0">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[560px] overflow-y-auto custom-scrollbar smooth-scroll pr-2 pb-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[650px] overflow-y-auto custom-scrollbar smooth-scroll pr-2 pb-4">
                                 {accounts.length === 0 ? (
                                     <div className="col-span-1 sm:col-span-2 text-center py-12 opacity-30 italic text-sm">
                                         No accounts added yet.
@@ -545,7 +545,7 @@ export function HomeContent({
                                                                 <Calendar className="h-5 w-5 text-primary" />
                                                             </div>
                                                             <div className="min-w-0">
-                                                                <DialogTitle className="text-xl sm:text-2xl font-black truncate">Transaction Ledger</DialogTitle>
+                                                                <DialogTitle className="text-xl sm:text-2xl font-black truncate">Ledger</DialogTitle>
                                                                 <p className="text-[10px] sm:text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1.5 flex items-center gap-2">
                                                                     <span>{MONTHS[parseInt(filterMonth) - 1]} {filterYear}</span>
                                                                     <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />

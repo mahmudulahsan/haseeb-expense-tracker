@@ -16,7 +16,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowUpCircle, ArrowDownCircle, Check, X, Mic, Loader2, Sparkles } from "lucide-react";
+import { Plus, ArrowUpCircle, ArrowDownCircle, Check, X, Mic, Loader2, Sparkles, ArrowRightLeft } from "lucide-react";
 import { createTransaction, updateTransaction, createCategory, parseVoiceTransaction } from "@/app/actions/finance";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SearchableSelect } from "@/components/dashboard/searchable-select";
 import { formatLocalDate, formatLocalTime } from "@/lib/date-utils";
+import { toast } from "sonner";
 
 
 interface AddTransactionDialogProps {
@@ -38,7 +39,8 @@ interface AddTransactionDialogProps {
         description?: string;
         category_id?: string;
         account_id?: string;
-        type?: "income" | "expense";
+        to_account_id?: string;
+        type?: "income" | "expense" | "transfer";
         date?: string;
         time?: string;
     };
@@ -60,12 +62,13 @@ export function AddTransactionDialog({
     const setOpen = controlledOnOpenChange || setInternalOpen;
 
     const [loading, setLoading] = useState(false);
-    const [type, setType] = useState<"income" | "expense">("expense");
+    const [type, setType] = useState<"income" | "expense" | "transfer">("expense");
     const [isCreatingCategory, setIsCreatingCategory] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState("");
 
     // Select states
     const [selectedAccount, setSelectedAccount] = useState("");
+    const [selectedToAccount, setSelectedToAccount] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("");
 
     // Controlled inputs for AI pre-fill
@@ -81,6 +84,7 @@ export function AddTransactionDialog({
             if (initialData.description !== undefined) setDescription(initialData.description);
             if (initialData.category_id !== undefined) setSelectedCategory(initialData.category_id);
             if (initialData.account_id !== undefined) setSelectedAccount(initialData.account_id);
+            if (initialData.to_account_id !== undefined) setSelectedToAccount(initialData.to_account_id);
             if (initialData.type !== undefined) setType(initialData.type);
 
             if (isEditing && initialData.date) {
@@ -192,9 +196,10 @@ export function AddTransactionDialog({
         if (result.success) {
             setNewCategoryName("");
             setIsCreatingCategory(false);
+            toast.success("Category created successfully");
             router.refresh();
         } else {
-            alert(result.error);
+            toast.error(result.error);
         }
         setLoading(false);
     }
@@ -207,6 +212,7 @@ export function AddTransactionDialog({
 
         // Manual append for Radix Selects if they aren't caught by FormData
         if (selectedAccount) formData.set("account_id", selectedAccount);
+        if (selectedToAccount) formData.set("to_account_id", selectedToAccount);
         if (selectedCategory) formData.set("category_id", selectedCategory);
 
         const result = isEditing && initialData?.id
@@ -215,10 +221,11 @@ export function AddTransactionDialog({
 
         if (result.success) {
             handleOpenChange(false);
+            toast.success(`Transaction ${isEditing ? 'updated' : 'added'} successfully`);
             router.refresh();
         } else {
             console.error(result.error);
-            alert(result.error || `Failed to ${isEditing ? 'update' : 'add'} transaction`);
+            toast.error(result.error || `Failed to ${isEditing ? 'update' : 'add'} transaction`);
             setLoading(false);
         }
     }
@@ -238,6 +245,7 @@ export function AddTransactionDialog({
             setIsCreatingCategory(false);
             setNewCategoryName("");
             setType("expense");
+            setSelectedToAccount("");
             setLoading(false);
         }
     };
@@ -367,6 +375,17 @@ export function AddTransactionDialog({
                             <ArrowUpCircle className="h-4 w-4" />
                             Income
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => { setType("transfer"); setIsCreatingCategory(false); setSelectedCategory(""); }}
+                            className={cn(
+                                "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all",
+                                type === "transfer" ? "bg-white dark:bg-black shadow-sm text-blue-500" : "text-muted-foreground"
+                            )}
+                        >
+                            <ArrowRightLeft className="h-4 w-4" />
+                            Transfer
+                        </button>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6 pt-4">
@@ -387,7 +406,9 @@ export function AddTransactionDialog({
 
                         <div className="grid grid-cols-1 gap-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Account</label>
+                                <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                                    {type === 'transfer' ? 'From Account' : 'Account'}
+                                </label>
                                 <SearchableSelect
                                     options={accounts}
                                     value={selectedAccount}
@@ -397,74 +418,89 @@ export function AddTransactionDialog({
                                 <input type="hidden" name="account_id" value={selectedAccount} required />
                             </div>
 
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center mb-1">
-                                    <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Category</label>
-                                    {!isCreatingCategory && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                // We can still use the dialog's existing creation logic
-                                                // but let the SearchableSelect handle the search
-                                                setIsCreatingCategory(true);
-                                            }}
-                                            className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline px-2 py-1 rounded-lg bg-primary/5"
-                                        >
-                                            <Plus className="h-3 w-3" /> New Category
-                                        </button>
+                            {type === 'transfer' && (
+                                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">To Account</label>
+                                    <SearchableSelect
+                                        options={accounts.filter(a => a.id !== selectedAccount)}
+                                        value={selectedToAccount}
+                                        onValueChange={setSelectedToAccount}
+                                        placeholder="Select Destination..."
+                                    />
+                                    <input type="hidden" name="to_account_id" value={selectedToAccount} required />
+                                </div>
+                            )}
+
+                            {type !== 'transfer' && (
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Category</label>
+                                        {!isCreatingCategory && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    // We can still use the dialog's existing creation logic
+                                                    // but let the SearchableSelect handle the search
+                                                    setIsCreatingCategory(true);
+                                                }}
+                                                className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline px-2 py-1 rounded-lg bg-primary/5"
+                                            >
+                                                <Plus className="h-3 w-3" /> New Category
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {isCreatingCategory ? (
+                                        <div className="flex gap-2 animate-in fade-in zoom-in-95 duration-200">
+                                            <input
+                                                className="flex-1 h-12 bg-gray-100 dark:bg-white/5 border-2 border-primary/20 rounded-2xl px-4 text-sm focus:ring-2 focus:ring-primary outline-none font-medium"
+                                                placeholder="Category name..."
+                                                value={newCategoryName}
+                                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleAddCategory();
+                                                    }
+                                                }}
+                                                autoFocus
+                                            />
+                                            <div className="flex gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAddCategory}
+                                                    disabled={loading || !newCategoryName}
+                                                    className="bg-primary text-white h-12 w-12 rounded-2xl flex items-center justify-center hover:opacity-90 disabled:opacity-50 transition-opacity"
+                                                >
+                                                    <Check className="h-5 w-5" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsCreatingCategory(false)}
+                                                    className="bg-gray-100 dark:bg-white/10 text-muted-foreground h-12 w-12 rounded-2xl flex items-center justify-center hover:opacity-90 transition-opacity"
+                                                >
+                                                    <X className="h-5 w-5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <SearchableSelect
+                                                options={filteredCategories}
+                                                value={selectedCategory}
+                                                onValueChange={setSelectedCategory}
+                                                placeholder="Select Category..."
+                                                onCreate={(name) => {
+                                                    setNewCategoryName(name);
+                                                    setIsCreatingCategory(true);
+                                                }}
+                                                createLabel="Add category"
+                                            />
+                                            <input type="hidden" name="category_id" value={selectedCategory} required />
+                                        </>
                                     )}
                                 </div>
-
-                                {isCreatingCategory ? (
-                                    <div className="flex gap-2 animate-in fade-in zoom-in-95 duration-200">
-                                        <input
-                                            className="flex-1 h-12 bg-gray-100 dark:bg-white/5 border-2 border-primary/20 rounded-2xl px-4 text-sm focus:ring-2 focus:ring-primary outline-none font-medium"
-                                            placeholder="Category name..."
-                                            value={newCategoryName}
-                                            onChange={(e) => setNewCategoryName(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    handleAddCategory();
-                                                }
-                                            }}
-                                            autoFocus
-                                        />
-                                        <div className="flex gap-1">
-                                            <button
-                                                type="button"
-                                                onClick={handleAddCategory}
-                                                disabled={loading || !newCategoryName}
-                                                className="bg-primary text-white h-12 w-12 rounded-2xl flex items-center justify-center hover:opacity-90 disabled:opacity-50 transition-opacity"
-                                            >
-                                                <Check className="h-5 w-5" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsCreatingCategory(false)}
-                                                className="bg-gray-100 dark:bg-white/10 text-muted-foreground h-12 w-12 rounded-2xl flex items-center justify-center hover:opacity-90 transition-opacity"
-                                            >
-                                                <X className="h-5 w-5" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <SearchableSelect
-                                            options={filteredCategories}
-                                            value={selectedCategory}
-                                            onValueChange={setSelectedCategory}
-                                            placeholder="Select Category..."
-                                            onCreate={(name) => {
-                                                setNewCategoryName(name);
-                                                setIsCreatingCategory(true);
-                                            }}
-                                            createLabel="Add category"
-                                        />
-                                        <input type="hidden" name="category_id" value={selectedCategory} required />
-                                    </>
-                                )}
-                            </div>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -476,7 +512,7 @@ export function AddTransactionDialog({
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium"
-                                placeholder="e.g. Zakat, Sadaqah, or Eid Gifts"
+                                placeholder="Describe your transaction"
                             />
 
                         </div>
@@ -509,7 +545,9 @@ export function AddTransactionDialog({
 
                         <Button type="submit" disabled={loading} className={cn(
                             "w-full h-14 text-lg font-bold shadow-xl transition-colors",
-                            type === "income" ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20" : "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
+                            type === "income" ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20" :
+                                type === "transfer" ? "bg-blue-500 hover:bg-blue-600 shadow-blue-500/20" :
+                                    "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
                         )}>
                             {loading ? "Saving..." : "Save Transaction"}
                         </Button>

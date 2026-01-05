@@ -6,6 +6,8 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { deleteTransaction } from "@/app/actions/finance";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+
 
 export function DeleteTransactionButton({ id }: { id: string }) {
     const [open, setOpen] = useState(false);
@@ -13,7 +15,9 @@ export function DeleteTransactionButton({ id }: { id: string }) {
     const handleDelete = async () => {
         const result = await deleteTransaction(id);
         if (result.error) {
-            alert(result.error);
+            toast.error(result.error);
+        } else {
+            toast.success("Transaction deleted successfully");
         }
     };
 

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { deleteAccount } from "@/app/actions/finance";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export function DeleteAccountButton({ id, name }: { id: string, name: string }) {
     const [open, setOpen] = useState(false);
@@ -12,7 +13,9 @@ export function DeleteAccountButton({ id, name }: { id: string, name: string }) 
     const handleDelete = async () => {
         const result = await deleteAccount(id);
         if (result.error) {
-            alert(result.error);
+            toast.error(result.error);
+        } else {
+            toast.success("Account deleted successfully");
         }
     };
 

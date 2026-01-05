@@ -55,6 +55,7 @@ export async function createTransaction(formData: FormData) {
         account_id: formData.get("account_id"),
         type: formData.get("type"),
         description: formData.get("description"),
+        to_account_id: formData.get("to_account_id"),
         date: formData.get("date"),
         time: formData.get("time"),
     };
@@ -99,23 +100,45 @@ export async function createTransaction(formData: FormData) {
 
     if (txError) {
         console.error("Tx Database error:", txError);
-        return { error: "Failed to record transaction" };
+        return { error: `Failed to record transaction: ${txError.message}` };
     }
 
     // 3. Update balance
-    const newBalance = transaction.type === "income"
-        ? account.balance + originalAmount
-        : account.balance - originalAmount;
+    if (transaction.type === "transfer") {
+        // Decrement source
+        await supabase
+            .from("accounts")
+            .update({ balance: account.balance - originalAmount })
+            .eq("id", transaction.account_id);
 
-    const { error: updateError } = await supabase
-        .from("accounts")
-        .update({ balance: newBalance })
-        .eq("id", transaction.account_id);
+        // Increment destination
+        if (transaction.to_account_id) {
+            const { data: toAccount } = await supabase
+                .from("accounts")
+                .select("balance")
+                .eq("id", transaction.to_account_id)
+                .single();
 
-    if (updateError) {
-        console.error("Balance update error:", updateError);
-        // Warning: This creates inconsistency if Tx succeeds but balance update fails.
-        // In production, use Supabase RPC or Database Triggers for atomicity.
+            if (toAccount) {
+                await supabase
+                    .from("accounts")
+                    .update({ balance: toAccount.balance + originalAmount })
+                    .eq("id", transaction.to_account_id);
+            }
+        }
+    } else {
+        const newBalance = transaction.type === "income"
+            ? account.balance + originalAmount
+            : account.balance - originalAmount;
+
+        const { error: updateError } = await supabase
+            .from("accounts")
+            .update({ balance: newBalance })
+            .eq("id", transaction.account_id);
+
+        if (updateError) {
+            console.error("Balance update error:", updateError);
+        }
     }
 
     revalidatePath("/");
@@ -134,6 +157,7 @@ export async function updateTransaction(id: string, formData: FormData) {
         account_id: formData.get("account_id"),
         type: formData.get("type"),
         description: formData.get("description"),
+        to_account_id: formData.get("to_account_id"),
         date: formData.get("date"),
         time: formData.get("time"),
     };
@@ -165,22 +189,37 @@ export async function updateTransaction(id: string, formData: FormData) {
 
     const oldAmountValue = Number(decrypt(oldTx.amount));
 
-    // 2. Revert balance on the OLD account
-    const { data: oldAccount, error: oldAccError } = await supabase
-        .from("accounts")
-        .select("balance")
-        .eq("id", oldTx.account_id)
-        .single();
-
-    if (!oldAccError && oldAccount) {
-        const revertedBalance = oldTx.type === "income"
-            ? oldAccount.balance - oldAmountValue
-            : oldAccount.balance + oldAmountValue;
-
-        await supabase
+    // 2. Revert balance on the OLD account(s)
+    if (oldTx.type === "transfer") {
+        // Revert source (increment back)
+        const { data: srcAcc } = await supabase.from("accounts").select("balance").eq("id", oldTx.account_id).single();
+        if (srcAcc) {
+            await supabase.from("accounts").update({ balance: srcAcc.balance + oldAmountValue }).eq("id", oldTx.account_id);
+        }
+        // Revert destination (decrement back)
+        if (oldTx.to_account_id) {
+            const { data: destAcc } = await supabase.from("accounts").select("balance").eq("id", oldTx.to_account_id).single();
+            if (destAcc) {
+                await supabase.from("accounts").update({ balance: destAcc.balance - oldAmountValue }).eq("id", oldTx.to_account_id);
+            }
+        }
+    } else {
+        const { data: oldAccount, error: oldAccError } = await supabase
             .from("accounts")
-            .update({ balance: revertedBalance })
-            .eq("id", oldTx.account_id);
+            .select("balance")
+            .eq("id", oldTx.account_id)
+            .single();
+
+        if (!oldAccError && oldAccount) {
+            const revertedBalance = oldTx.type === "income"
+                ? oldAccount.balance - oldAmountValue
+                : oldAccount.balance + oldAmountValue;
+
+            await supabase
+                .from("accounts")
+                .update({ balance: revertedBalance })
+                .eq("id", oldTx.account_id);
+        }
     }
 
     // 3. Encrypt relevant fields for update
@@ -199,25 +238,40 @@ export async function updateTransaction(id: string, formData: FormData) {
 
     if (updateTxError) {
         console.error("Update Tx error:", updateTxError);
-        return { error: "Failed to update transaction" };
+        return { error: `Failed to update transaction: ${updateTxError.message}` };
     }
 
-    // 5. Apply balance to the NEW (potentially same) account
-    const { data: newAccount, error: newAccError } = await supabase
-        .from("accounts")
-        .select("balance")
-        .eq("id", updatedData.account_id)
-        .single();
-
-    if (!newAccError && newAccount) {
-        const finalBalance = updatedData.type === "income"
-            ? newAccount.balance + newAmount
-            : newAccount.balance - newAmount;
-
-        await supabase
+    // 5. Apply balance to the NEW (potentially same) account(s)
+    if (updatedData.type === "transfer") {
+        // Apply source (decrement)
+        const { data: srcAcc } = await supabase.from("accounts").select("balance").eq("id", updatedData.account_id).single();
+        if (srcAcc) {
+            await supabase.from("accounts").update({ balance: srcAcc.balance - newAmount }).eq("id", updatedData.account_id);
+        }
+        // Apply destination (increment)
+        if (updatedData.to_account_id) {
+            const { data: destAcc } = await supabase.from("accounts").select("balance").eq("id", updatedData.to_account_id).single();
+            if (destAcc) {
+                await supabase.from("accounts").update({ balance: destAcc.balance + newAmount }).eq("id", updatedData.to_account_id);
+            }
+        }
+    } else {
+        const { data: newAccount, error: newAccError } = await supabase
             .from("accounts")
-            .update({ balance: finalBalance })
-            .eq("id", updatedData.account_id);
+            .select("balance")
+            .eq("id", updatedData.account_id)
+            .single();
+
+        if (!newAccError && newAccount) {
+            const finalBalance = updatedData.type === "income"
+                ? newAccount.balance + newAmount
+                : newAccount.balance - newAmount;
+
+            await supabase
+                .from("accounts")
+                .update({ balance: finalBalance })
+                .eq("id", updatedData.account_id);
+        }
     }
 
     revalidatePath("/");
@@ -254,7 +308,7 @@ export async function deleteTransaction(id: string) {
     // 1. Get transaction details to adjust balance
     const { data: tx, error: fetchError } = await supabase
         .from("expenses")
-        .select("amount, type, account_id")
+        .select("amount, type, account_id, to_account_id")
         .eq("id", id)
         .single();
 
@@ -273,7 +327,23 @@ export async function deleteTransaction(id: string) {
     }
 
     // 3. Revert balance
-    if (tx.account_id) {
+    const amount = Number(decrypt(tx.amount));
+    if (tx.type === "transfer") {
+        // Revert source (increment back)
+        if (tx.account_id) {
+            const { data: srcAcc } = await supabase.from("accounts").select("balance").eq("id", tx.account_id).single();
+            if (srcAcc) {
+                await supabase.from("accounts").update({ balance: srcAcc.balance + amount }).eq("id", tx.account_id);
+            }
+        }
+        // Revert destination (decrement back)
+        if ((tx as any).to_account_id) {
+            const { data: destAcc } = await supabase.from("accounts").select("balance").eq("id", (tx as any).to_account_id).single();
+            if (destAcc) {
+                await supabase.from("accounts").update({ balance: destAcc.balance - amount }).eq("id", (tx as any).to_account_id);
+            }
+        }
+    } else if (tx.account_id) {
         const { data: account } = await supabase
             .from("accounts")
             .select("balance")
@@ -281,7 +351,6 @@ export async function deleteTransaction(id: string) {
             .single();
 
         if (account) {
-            const amount = Number(decrypt(tx.amount));
             const newBalance = tx.type === "income"
                 ? Number(account.balance) - amount
                 : Number(account.balance) + amount;
@@ -306,7 +375,7 @@ export async function deleteTransactionsBulk(ids: string[]) {
     // 1. Get all transactions to adjust balances
     const { data: transactions, error: fetchError } = await supabase
         .from("expenses")
-        .select("id, amount, type, account_id")
+        .select("id, amount, type, account_id, to_account_id")
         .in("id", ids)
         .eq("user_id", session.user.id);
 
@@ -327,10 +396,18 @@ export async function deleteTransactionsBulk(ids: string[]) {
     // 3. Group by account to minimize updates
     const balanceAdjustments: Record<string, number> = {};
     for (const tx of transactions) {
-        if (!tx.account_id) continue;
         const amount = Number(decrypt(tx.amount));
-        const adjustment = tx.type === "income" ? -amount : amount;
-        balanceAdjustments[tx.account_id] = (balanceAdjustments[tx.account_id] || 0) + adjustment;
+        if (tx.type === "transfer") {
+            if (tx.account_id) {
+                balanceAdjustments[tx.account_id] = (balanceAdjustments[tx.account_id] || 0) + amount;
+            }
+            if ((tx as any).to_account_id) {
+                balanceAdjustments[(tx as any).to_account_id] = (balanceAdjustments[(tx as any).to_account_id] || 0) - amount;
+            }
+        } else if (tx.account_id) {
+            const adjustment = tx.type === "income" ? -amount : amount;
+            balanceAdjustments[tx.account_id] = (balanceAdjustments[tx.account_id] || 0) + adjustment;
+        }
     }
 
     // 4. Update balances
@@ -526,11 +603,20 @@ export async function voiceTransaction(text: string, localDate?: string) {
             category = newCatResult.category;
         }
 
-        // 4. Create transaction
+        // 4. Resolve destination account for transfers
+        let toAccount = null;
+        if (aiResult.type === "transfer" && aiResult.toAccount) {
+            toAccount = accounts.find(a =>
+                a.name.toLowerCase() === aiResult.toAccount?.toLowerCase()
+            );
+        }
+
+        // 5. Create transaction
         const formData = new FormData();
         formData.append("amount", aiResult.amount.toString());
-        formData.append("category_id", category.id);
+        if (category) formData.append("category_id", category.id);
         formData.append("account_id", account.id);
+        if (toAccount) formData.append("to_account_id", toAccount.id);
         formData.append("type", aiResult.type || "expense");
         formData.append("description", aiResult.description || text);
         formData.append("date", aiResult.date || localDate || new Date().toISOString().split('T')[0]);

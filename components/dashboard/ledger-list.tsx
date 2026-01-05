@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Check, Trash2, X, Plus, Pencil } from "lucide-react";
+import { Calendar, Check, Trash2, X, Plus, Pencil, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { DeleteTransactionButton } from "@/components/dashboard/delete-transaction-button";
@@ -10,6 +10,7 @@ import { parseLocalDate, formatDisplayTime } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { deleteTransactionsBulk } from "@/app/actions/finance";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 interface LedgerListProps {
     expenses: any[];
@@ -41,8 +42,9 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
         try {
             const result = await deleteTransactionsBulk(selectedIds);
             if (result.error) {
-                alert(result.error);
+                toast.error(result.error);
             } else {
+                toast.success(`${selectedIds.length} transactions deleted successfully`);
                 setSelectedIds([]);
             }
         } finally {
@@ -176,21 +178,33 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                             whileHover={{ scale: 1.1, rotate: 5 }}
                                             className={cn(
                                                 "h-10 w-10 rounded-[1rem] shadow-sm flex items-center justify-center font-bold text-sm shrink-0",
-                                                expense.type === 'income' ? "bg-emerald-500/10 text-emerald-600" : "bg-orange-500/10 text-orange-600"
+                                                expense.type === 'income' ? "bg-emerald-500/10 text-emerald-600" :
+                                                    expense.type === 'transfer' ? "bg-blue-500/10 text-blue-600" :
+                                                        "bg-orange-500/10 text-orange-600"
                                             )}
                                         >
-                                            {expense.categories?.name?.charAt(0) || "U"}
+                                            {expense.type === 'transfer' ? <ArrowRightLeft className="h-4 w-4" /> : (expense.categories?.name?.charAt(0) || "U")}
                                         </motion.div>
                                         <div className="min-w-0 flex-1">
                                             <p className="font-bold truncate">{expense.description}</p>
                                             <div className="flex items-center gap-2 overflow-hidden">
                                                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest truncate shrink-0">
                                                     {accounts.find(a => a.id === expense.account_id)?.name || "External"}
+                                                    {expense.type === 'transfer' && (
+                                                        <>
+                                                            <span className="mx-1">→</span>
+                                                            {accounts.find(a => a.id === expense.to_account_id)?.name || "External"}
+                                                        </>
+                                                    )}
                                                 </p>
-                                                <span className="text-[8px] opacity-30 shrink-0">•</span>
-                                                <p className="text-[10px] text-primary/60 font-bold uppercase tracking-widest truncate">
-                                                    {expense.categories?.name || "Uncategorized"}
-                                                </p>
+                                                {expense.type !== 'transfer' && (
+                                                    <>
+                                                        <span className="text-[8px] opacity-30 shrink-0">•</span>
+                                                        <p className="text-[10px] text-primary/60 font-bold uppercase tracking-widest truncate">
+                                                            {expense.categories?.name || "Uncategorized"}
+                                                        </p>
+                                                    </>
+                                                )}
                                                 {expense.time && (
                                                     <>
                                                         <span className="text-[8px] opacity-30 shrink-0">•</span>
@@ -209,9 +223,11 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                         >
                                             <p className={cn(
                                                 "font-black text-base sm:text-lg",
-                                                expense.type === 'income' ? "text-emerald-500" : "text-orange-500"
+                                                expense.type === 'income' ? "text-emerald-500" :
+                                                    expense.type === 'transfer' ? "text-blue-500" :
+                                                        "text-orange-500"
                                             )}>
-                                                {expense.type === 'income' ? '+' : '-'}{currencySymbol}{expense.amount.toFixed(2)}
+                                                {expense.type === 'income' ? '+' : expense.type === 'expense' ? '-' : ''}{currencySymbol}{expense.amount.toFixed(2)}
                                             </p>
                                             <Badge variant="outline" className="text-[9px] uppercase tracking-tighter h-5 px-2">
                                                 {expense.type}

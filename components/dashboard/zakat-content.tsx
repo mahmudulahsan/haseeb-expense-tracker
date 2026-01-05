@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Check, Trash2 } from "lucide-react";
 import { parseLocalDate } from "@/lib/date-utils";
 import { useDebouncedCallback } from "use-debounce";
+import { toast } from "sonner";
 
 interface ZakatSectionProps {
     title: string;
@@ -232,9 +233,10 @@ export function ZakatContent({
         setIsSaving(false);
         if (result.success) {
             setSaveSuccess(true);
+            toast.success("Zakat target synced with dashboard");
             setTimeout(() => setSaveSuccess(false), 3000);
         } else {
-            alert(result.error);
+            toast.error(result.error);
         }
     };
 
@@ -371,7 +373,12 @@ export function ZakatContent({
                                                 <button
                                                     onClick={async () => {
                                                         if (confirm("Are you sure you want to reset your Zakat target?")) {
-                                                            await updateZakatTarget(0);
+                                                            const result = await updateZakatTarget(0);
+                                                            if (result.success) {
+                                                                toast.success("Zakat target reset successfully");
+                                                            } else {
+                                                                toast.error(result.error);
+                                                            }
                                                         }
                                                     }}
                                                     className="text-white/40 hover:text-white/100 transition-colors ml-2"
@@ -457,7 +464,7 @@ export function ZakatContent({
                                 ) : saveSuccess ? (
                                     <Check className="h-4 w-4 mr-2" />
                                 ) : null}
-                                {saveSuccess ? "Saved to Dashboard" : "Sync with Dashboard"}
+                                {saveSuccess ? "Saved" : "Save"}
                             </Button>
                         </CardContent>
                     </Card>

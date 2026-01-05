@@ -1,9 +1,9 @@
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Navbar } from "@/components/dashboard/navbar";
 import {
-    Wallet,
     Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { getProfile } from "@/services/profile";
 import { ProfileButton } from "@/components/dashboard/profile-button";
 import { Calculator } from "@/components/dashboard/calculator";
 import { SearchBar } from "@/components/dashboard/search-bar";
+import { Logo } from "@/components/shared/logo";
 
 
 export default async function DashboardLayout({
@@ -33,12 +34,9 @@ export default async function DashboardLayout({
             <header className="sticky top-2 sm:top-6 z-50 mx-auto w-[98%] sm:w-[95%] max-w-7xl px-2 sm:px-4 mb-4">
                 <nav className="flex items-center rounded-2xl sm:rounded-[2.5rem] bg-white/90 dark:bg-black/90 px-1.5 sm:px-4 py-2 sm:py-3 shadow-sm backdrop-blur-xl border border-white/20">
                     <div className="flex items-center gap-1 sm:gap-4 pl-0.5 sm:pl-4">
-                        <div className="hidden sm:flex items-center gap-2 mr-1 sm:mr-0">
-                            <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-[1rem] sm:rounded-2xl bg-primary text-white shrink-0">
-                                <Wallet className="h-4 w-4 sm:h-6 w-6" />
-                            </div>
-                            <span className="text-lg sm:text-xl font-bold tracking-tight hidden lg:block text-black dark:text-white">Haseeb</span>
-                        </div>
+                        <Link href="/" className="flex items-center">
+                            <Logo showText size="md" className="scale-90 sm:scale-100 origin-left" />
+                        </Link>
                         <Navbar />
                     </div>
 

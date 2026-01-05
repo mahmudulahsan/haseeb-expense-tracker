@@ -12,12 +12,21 @@ export type AccountSchema = z.infer<typeof accountSchema>;
 
 export const transactionSchema = z.object({
     amount: z.coerce.number().positive("Amount must be positive"),
-    category_id: z.string().uuid("Invalid category"),
+    category_id: z.string().uuid("Invalid category").optional(),
     account_id: z.string().uuid("Invalid account"),
-    type: z.enum(["income", "expense"]),
+    to_account_id: z.string().uuid("Invalid destination account").optional(),
+    type: z.enum(["income", "expense", "transfer"]),
     description: z.string().max(1000).optional().or(z.literal("")),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
     time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "Invalid time format").optional(),
+}).refine(data => {
+    if (data.type === "transfer") {
+        return !!data.to_account_id && data.to_account_id !== data.account_id;
+    }
+    return !!data.category_id;
+}, {
+    message: "Destination account is required for transfers and must be different from source account. Category is required for income/expense.",
+    path: ["to_account_id"]
 });
 
 export type TransactionSchema = z.infer<typeof transactionSchema>;

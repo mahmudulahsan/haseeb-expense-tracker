@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { voiceTransaction } from "@/app/actions/finance";
 import { cn } from "@/lib/utils";
 import { formatLocalDate } from "@/lib/date-utils";
+import { toast } from "sonner";
 
 export function VoiceTransactionButton() {
     const [isListening, setIsListening] = useState(false);
@@ -44,7 +45,7 @@ export function VoiceTransactionButton() {
 
     const toggleListening = () => {
         if (!recognitionRef.current) {
-            alert("Speech recognition is not supported in this browser.");
+            toast.error("Speech recognition is not supported in this browser.");
             return;
         }
 
@@ -64,12 +65,13 @@ export function VoiceTransactionButton() {
             const result = await voiceTransaction(text, formatLocalDate());
             if ("success" in result && result.success) {
                 setStatus("Success!");
+                toast.success("Voice transaction processed successfully!");
                 setTimeout(() => setStatus(null), 2000);
             } else {
                 const errorMsg = "error" in result ? result.error : "Failed";
                 setStatus("Error: " + errorMsg);
                 setTimeout(() => setStatus(null), 4000);
-                alert(errorMsg || "Failed to process transaction.");
+                toast.error(errorMsg || "Failed to process transaction.");
             }
         } catch (error) {
             console.error("Error processing voice command:", error);

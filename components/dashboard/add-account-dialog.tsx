@@ -20,6 +20,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const ICONS = [
     { name: "Wallet", icon: Wallet },
@@ -51,9 +52,10 @@ export function AddAccountDialog({ variant = 'full' }: { variant?: 'full' | 'com
 
         if (result.success) {
             setOpen(false);
+            toast.success("Account created successfully");
             router.refresh();
         } else {
-            alert(result.error);
+            toast.error(result.error);
         }
         setLoading(false);
     }
