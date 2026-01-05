@@ -122,6 +122,108 @@ export async function createTransaction(formData: FormData) {
     return { success: true };
 }
 
+export async function updateTransaction(id: string, formData: FormData) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    const rawData = {
+        amount: formData.get("amount"),
+        category_id: formData.get("category_id"),
+        account_id: formData.get("account_id"),
+        type: formData.get("type"),
+        description: formData.get("description"),
+        date: formData.get("date"),
+        time: formData.get("time"),
+    };
+
+    const sanitizedData = Object.fromEntries(
+        Object.entries(rawData).map(([k, v]) => [k, v === null ? undefined : v])
+    );
+
+    const validatedFields = transactionSchema.safeParse(sanitizedData);
+
+    if (!validatedFields.success) {
+        return { error: "Invalid fields", details: validatedFields.error.flatten().fieldErrors };
+    }
+
+    const updatedData = { ...validatedFields.data };
+    const newAmount = updatedData.amount;
+
+    // 1. Fetch old transaction to revert balance
+    const { data: oldTx, error: fetchTxError } = await supabase
+        .from("expenses")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", session.user.id)
+        .single();
+
+    if (fetchTxError || !oldTx) {
+        return { error: "Transaction not found" };
+    }
+
+    const oldAmountValue = Number(decrypt(oldTx.amount));
+
+    // 2. Revert balance on the OLD account
+    const { data: oldAccount, error: oldAccError } = await supabase
+        .from("accounts")
+        .select("balance")
+        .eq("id", oldTx.account_id)
+        .single();
+
+    if (!oldAccError && oldAccount) {
+        const revertedBalance = oldTx.type === "income"
+            ? oldAccount.balance - oldAmountValue
+            : oldAccount.balance + oldAmountValue;
+
+        await supabase
+            .from("accounts")
+            .update({ balance: revertedBalance })
+            .eq("id", oldTx.account_id);
+    }
+
+    // 3. Encrypt relevant fields for update
+    if (updatedData.description) {
+        updatedData.description = encrypt(updatedData.description);
+    }
+    // Encrypt amount for DB storage
+    (updatedData as any).amount = encrypt(newAmount);
+
+    // 4. Update the transaction
+    const { error: updateTxError } = await supabase
+        .from("expenses")
+        .update({ ...updatedData })
+        .eq("id", id)
+        .eq("user_id", session.user.id);
+
+    if (updateTxError) {
+        console.error("Update Tx error:", updateTxError);
+        return { error: "Failed to update transaction" };
+    }
+
+    // 5. Apply balance to the NEW (potentially same) account
+    const { data: newAccount, error: newAccError } = await supabase
+        .from("accounts")
+        .select("balance")
+        .eq("id", updatedData.account_id)
+        .single();
+
+    if (!newAccError && newAccount) {
+        const finalBalance = updatedData.type === "income"
+            ? newAccount.balance + newAmount
+            : newAccount.balance - newAmount;
+
+        await supabase
+            .from("accounts")
+            .update({ balance: finalBalance })
+            .eq("id", updatedData.account_id);
+    }
+
+    revalidatePath("/");
+    return { success: true };
+}
+
 export async function deleteAccount(id: string) {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };
@@ -313,6 +415,50 @@ export async function signUserOut() {
     await logout();
     redirect("/login");
 }
+
+export async function updateZakatBreakdown(breakdown: any) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+        .from("profiles")
+        .update({
+            zakat_breakdown: breakdown,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", session.user.id);
+
+    if (error) {
+        console.error("Zakat breakdown update error:", error);
+        return { error: `Failed to update zakat breakdown: ${error.message}` };
+    }
+
+    revalidatePath("/");
+    return { success: true };
+}
+
+export async function getZakatBreakdown() {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+        .from("profiles")
+        .select("zakat_breakdown")
+        .eq("id", session.user.id)
+        .single();
+
+    if (error) {
+        console.error("Zakat breakdown fetch error:", error);
+        return { error: `Failed to fetch zakat breakdown: ${error.message}` };
+    }
+
+    return { success: true, breakdown: data?.zakat_breakdown };
+}
+
 
 export async function updateZakatTarget(amount: number) {
     const session = await getSession();

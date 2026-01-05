@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowUpCircle, ArrowDownCircle, Check, X, Mic, Loader2, Sparkles } from "lucide-react";
-import { createTransaction, createCategory, parseVoiceTransaction } from "@/app/actions/finance";
+import { createTransaction, updateTransaction, createCategory, parseVoiceTransaction } from "@/app/actions/finance";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
@@ -33,12 +33,16 @@ interface AddTransactionDialogProps {
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
     initialData?: {
+        id?: string;
         amount?: number;
         description?: string;
         category_id?: string;
         account_id?: string;
         type?: "income" | "expense";
+        date?: string;
+        time?: string;
     };
+    mode?: "add" | "edit";
 }
 
 export function AddTransactionDialog({
@@ -47,8 +51,10 @@ export function AddTransactionDialog({
     currencySymbol = "$",
     open: controlledOpen,
     onOpenChange: controlledOnOpenChange,
-    initialData
+    initialData,
+    mode = "add"
 }: AddTransactionDialogProps) {
+    const isEditing = mode === "edit" || !!initialData?.id;
     const [internalOpen, setInternalOpen] = useState(false);
     const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
     const setOpen = controlledOnOpenChange || setInternalOpen;
@@ -76,10 +82,21 @@ export function AddTransactionDialog({
             if (initialData.category_id !== undefined) setSelectedCategory(initialData.category_id);
             if (initialData.account_id !== undefined) setSelectedAccount(initialData.account_id);
             if (initialData.type !== undefined) setType(initialData.type);
-            setDate(formatLocalDate()); // Always set to today as per requirements
-            setTime(formatLocalTime());
+
+            if (isEditing && initialData.date) {
+                setDate(initialData.date);
+            } else {
+                setDate(formatLocalDate());
+            }
+
+            if (isEditing && initialData.time) {
+                // Ensure time is in HH:MM format for the input
+                setTime(initialData.time.substring(0, 5));
+            } else {
+                setTime(formatLocalTime());
+            }
         }
-    }, [open, initialData]);
+    }, [open, initialData, isEditing]);
 
     // AI Voice states
     const [isListening, setIsListening] = useState(false);
@@ -192,14 +209,16 @@ export function AddTransactionDialog({
         if (selectedAccount) formData.set("account_id", selectedAccount);
         if (selectedCategory) formData.set("category_id", selectedCategory);
 
-        const result = await createTransaction(formData);
+        const result = isEditing && initialData?.id
+            ? await updateTransaction(initialData.id, formData)
+            : await createTransaction(formData);
 
         if (result.success) {
             handleOpenChange(false);
             router.refresh();
         } else {
             console.error(result.error);
-            alert(result.error || "Failed to add transaction");
+            alert(result.error || `Failed to ${isEditing ? 'update' : 'add'} transaction`);
             setLoading(false);
         }
     }
@@ -253,7 +272,7 @@ export function AddTransactionDialog({
             <DialogContent className="w-[95%] sm:max-w-[425px] rounded-[2rem] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
                 <div className="px-6 pt-6 pb-2 shrink-0">
                     <DialogHeader className="flex flex-row items-center justify-between space-y-0 pr-12">
-                        <DialogTitle>Add Transaction</DialogTitle>
+                        <DialogTitle>{isEditing ? 'Edit Transaction' : 'Add Transaction'}</DialogTitle>
                         <button
                             type="button"
                             onClick={toggleListening}

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Coins, Heart, Info, Landmark, Briefcase, Home, Sprout, Receipt, AlertCircle, HandHeart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { updateZakatTarget } from "@/app/actions/finance";
+import { updateZakatTarget, getZakatBreakdown, updateZakatBreakdown } from "@/app/actions/finance";
 import { Button } from "@/components/ui/button";
 import { Loader2, Check, Trash2 } from "lucide-react";
 import { parseLocalDate } from "@/lib/date-utils";
+import { useDebouncedCallback } from "use-debounce";
 
 interface ZakatSectionProps {
     title: string;
@@ -74,40 +75,64 @@ export function ZakatContent({
     expenses?: any[];
     categories?: any[];
 }) {
-    // Cash Amount
-    const [cashInHand, setCashInHand] = useState("");
-    const [cashInBank, setCashInBank] = useState("");
+    // Form State with Persistence
+    const initialState = {
+        cashInHand: "",
+        cashInBank: "",
+        goldValue: "",
+        silverValue: "",
+        stockMarket: "",
+        otherInvestments: "",
+        rentalIncome: "",
+        otherProperty: "",
+        businessSavings: "",
+        businessInventory: "",
+        pensionIncome: "",
+        receivables: "",
+        otherCapital: "",
+        agricultureIncome: "",
+        creditCardDebt: "",
+        carLoan: "",
+        businessLoan: "",
+        familyLoan: "",
+        otherLoans: "",
+    };
 
-    // Gold & Silver
-    const [goldValue, setGoldValue] = useState("");
-    const [silverValue, setSilverValue] = useState("");
+    const [form, setForm] = useState(initialState);
+    const [isLoaded, setIsLoaded] = useState(false);
 
-    // Investment
-    const [stockMarket, setStockMarket] = useState("");
-    const [otherInvestments, setOtherInvestments] = useState("");
+    useEffect(() => {
+        async function loadData() {
+            const result = await getZakatBreakdown();
+            if (result.success && result.breakdown) {
+                setForm(prev => ({ ...prev, ...result.breakdown }));
+            }
+            setIsLoaded(true);
+        }
+        loadData();
+    }, []);
 
-    // Property
-    const [rentalIncome, setRentalIncome] = useState("");
-    const [otherProperty, setOtherProperty] = useState("");
+    const debouncedSave = useDebouncedCallback(async (data) => {
+        await updateZakatBreakdown(data);
+    }, 1000);
 
-    // Business
-    const [businessSavings, setBusinessSavings] = useState("");
-    const [businessInventory, setBusinessInventory] = useState("");
+    useEffect(() => {
+        if (isLoaded) {
+            debouncedSave(form);
+        }
+    }, [form, isLoaded, debouncedSave]);
 
-    // Others
-    const [pensionIncome, setPensionIncome] = useState("");
-    const [receivables, setReceivables] = useState("");
-    const [otherCapital, setOtherCapital] = useState("");
+    const updateField = (field: keyof typeof initialState, value: string) => {
+        setForm(prev => ({ ...prev, [field]: value }));
+    };
 
-    // Agriculture
-    const [agricultureIncome, setAgricultureIncome] = useState("");
-
-    // Liabilities
-    const [creditCardDebt, setCreditCardDebt] = useState("");
-    const [carLoan, setCarLoan] = useState("");
-    const [businessLoan, setBusinessLoan] = useState("");
-    const [familyLoan, setFamilyLoan] = useState("");
-    const [otherLoans, setOtherLoans] = useState("");
+    const {
+        cashInHand, cashInBank, goldValue, silverValue, stockMarket,
+        otherInvestments, rentalIncome, otherProperty, businessSavings,
+        businessInventory, pensionIncome, receivables, otherCapital,
+        agricultureIncome, creditCardDebt, carLoan, businessLoan,
+        familyLoan, otherLoans
+    } = form;
 
     const totalAssets = useMemo(() => {
         return (
@@ -247,49 +272,49 @@ export function ZakatContent({
                         {/* Column 1 */}
                         <div className="space-y-6">
                             <ZakatSection title="Cash Amount" icon={Coins} color="bg-emerald-500">
-                                <ZakatInput label="Cash in Hand" value={cashInHand} onChange={setCashInHand} currencySymbol={currencySymbol} />
-                                <ZakatInput label="Cash in Bank Accounts" value={cashInBank} onChange={setCashInBank} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Cash in Hand" value={cashInHand} onChange={(v) => updateField('cashInHand', v)} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Cash in Bank Accounts" value={cashInBank} onChange={(v) => updateField('cashInBank', v)} currencySymbol={currencySymbol} />
                             </ZakatSection>
 
                             <ZakatSection title="Gold & Silver" icon={Landmark} color="bg-amber-500">
-                                <ZakatInput label="Value of Gold" value={goldValue} onChange={setGoldValue} currencySymbol={currencySymbol} />
-                                <ZakatInput label="Value of Silver" value={silverValue} onChange={setSilverValue} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Value of Gold" value={goldValue} onChange={(v) => updateField('goldValue', v)} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Value of Silver" value={silverValue} onChange={(v) => updateField('silverValue', v)} currencySymbol={currencySymbol} />
                             </ZakatSection>
 
                             <ZakatSection title="Investments" icon={Briefcase} color="bg-blue-500">
-                                <ZakatInput label="Stock Market" value={stockMarket} onChange={setStockMarket} currencySymbol={currencySymbol} />
-                                <ZakatInput label="Other Investments" value={otherInvestments} onChange={setOtherInvestments} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Stock Market" value={stockMarket} onChange={(v) => updateField('stockMarket', v)} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Other Investments" value={otherInvestments} onChange={(v) => updateField('otherInvestments', v)} currencySymbol={currencySymbol} />
                             </ZakatSection>
 
                             <ZakatSection title="Property" icon={Home} color="bg-purple-500">
-                                <ZakatInput label="Income from House Rent" value={rentalIncome} onChange={setRentalIncome} currencySymbol={currencySymbol} />
-                                <ZakatInput label="Other Property" value={otherProperty} onChange={setOtherProperty} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Income from House Rent" value={rentalIncome} onChange={(v) => updateField('rentalIncome', v)} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Other Property" value={otherProperty} onChange={(v) => updateField('otherProperty', v)} currencySymbol={currencySymbol} />
                             </ZakatSection>
 
                             <ZakatSection title="Business Income" icon={Receipt} color="bg-rose-500">
-                                <ZakatInput label="Business Savings" value={businessSavings} onChange={setBusinessSavings} currencySymbol={currencySymbol} />
-                                <ZakatInput label="Business Inventory" value={businessInventory} onChange={setBusinessInventory} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Business Savings" value={businessSavings} onChange={(v) => updateField('businessSavings', v)} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Business Inventory" value={businessInventory} onChange={(v) => updateField('businessInventory', v)} currencySymbol={currencySymbol} />
                             </ZakatSection>
                         </div>
 
                         {/* Column 2 */}
                         <div className="space-y-6">
                             <ZakatSection title="Liabilities" icon={AlertCircle} color="bg-orange-500">
-                                <ZakatInput label="Credit Card Debt" value={creditCardDebt} onChange={setCreditCardDebt} currencySymbol={currencySymbol} />
-                                <ZakatInput label="Car Loan" value={carLoan} onChange={setCarLoan} currencySymbol={currencySymbol} />
-                                <ZakatInput label="Business Loan" value={businessLoan} onChange={setBusinessLoan} currencySymbol={currencySymbol} />
-                                <ZakatInput label="Family Loan" value={familyLoan} onChange={setFamilyLoan} currencySymbol={currencySymbol} />
-                                <ZakatInput label="Other Loans" value={otherLoans} onChange={setOtherLoans} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Credit Card Debt" value={creditCardDebt} onChange={(v) => updateField('creditCardDebt', v)} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Car Loan" value={carLoan} onChange={(v) => updateField('carLoan', v)} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Business Loan" value={businessLoan} onChange={(v) => updateField('businessLoan', v)} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Family Loan" value={familyLoan} onChange={(v) => updateField('familyLoan', v)} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Other Loans" value={otherLoans} onChange={(v) => updateField('otherLoans', v)} currencySymbol={currencySymbol} />
                             </ZakatSection>
 
                             <ZakatSection title="Agriculture" icon={Sprout} color="bg-lime-600">
-                                <ZakatInput label="Income from Agriculture" value={agricultureIncome} onChange={setAgricultureIncome} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Income from Agriculture" value={agricultureIncome} onChange={(v) => updateField('agricultureIncome', v)} currencySymbol={currencySymbol} />
                             </ZakatSection>
 
                             <ZakatSection title="Others" icon={Info} color="bg-slate-500">
-                                <ZakatInput label="Pension Income" value={pensionIncome} onChange={setPensionIncome} currencySymbol={currencySymbol} />
-                                <ZakatInput label="Receivables" value={receivables} onChange={setReceivables} currencySymbol={currencySymbol} />
-                                <ZakatInput label="Other Capital" value={otherCapital} onChange={setOtherCapital} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Pension Income" value={pensionIncome} onChange={(v) => updateField('pensionIncome', v)} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Receivables" value={receivables} onChange={(v) => updateField('receivables', v)} currencySymbol={currencySymbol} />
+                                <ZakatInput label="Other Capital" value={otherCapital} onChange={(v) => updateField('otherCapital', v)} currencySymbol={currencySymbol} />
                             </ZakatSection>
                         </div>
                     </div>
@@ -398,7 +423,7 @@ export function ZakatContent({
 
                                     {breakdown.length > 0 && (
                                         <div className="space-y-2 pt-2 border-t border-white/5">
-                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-3 px-1">Wealth Breakdown</p>
+                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-3 px-1">Breakdown</p>
                                             <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                                                 {breakdown.map((item, idx) => (
                                                     <div key={idx} className="flex items-center justify-between bg-white/5 rounded-2xl p-3 border border-white/5 hover:bg-white/10 transition-colors group/item">

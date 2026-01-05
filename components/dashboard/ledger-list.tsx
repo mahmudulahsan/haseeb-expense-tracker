@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Check, Trash2, X, Plus } from "lucide-react";
+import { Calendar, Check, Trash2, X, Plus, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { DeleteTransactionButton } from "@/components/dashboard/delete-transaction-button";
@@ -17,9 +17,10 @@ interface LedgerListProps {
     currencySymbol: string;
     maxHeight?: string;
     onAddAgain?: (expense: any) => void;
+    onEdit?: (expense: any) => void;
 }
 
-export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "450px", onAddAgain }: LedgerListProps) {
+export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "450px", onAddAgain, onEdit }: LedgerListProps) {
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -230,6 +231,22 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                                         title="Add Again"
                                                     >
                                                         <Plus className="h-4 w-4" />
+                                                    </Button>
+                                                </motion.div>
+                                            )}
+                                            {onEdit && (
+                                                <motion.div
+                                                    whileHover={{ scale: 1.15 }}
+                                                    whileTap={{ scale: 0.9 }}
+                                                >
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => onEdit(expense)}
+                                                        className="h-8 w-8 rounded-full bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white transition-all duration-300 shadow-lg shadow-blue-500/10 border border-blue-200 dark:border-blue-900/30"
+                                                        title="Edit Transaction"
+                                                    >
+                                                        <Pencil className="h-3.5 w-3.5" />
                                                     </Button>
                                                 </motion.div>
                                             )}

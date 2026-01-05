@@ -32,7 +32,8 @@ import {
     Filter,
     Maximize2,
     Download,
-
+    Eye,
+    EyeOff
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LedgerList } from "@/components/dashboard/ledger-list";
@@ -114,6 +115,18 @@ export function HomeContent({
     const [accountFilterMonth, setAccountFilterMonth] = useState<string>((now.getMonth() + 1).toString().padStart(2, '0'));
     const [accountFilterYear, setAccountFilterYear] = useState<string>(now.getFullYear().toString());
 
+    const [isAccountBalancesVisible, setIsAccountBalancesVisible] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('isAccountBalancesVisible');
+            return saved !== 'false';
+        }
+        return true;
+    });
+
+    useEffect(() => {
+        localStorage.setItem('isAccountBalancesVisible', JSON.stringify(isAccountBalancesVisible));
+    }, [isAccountBalancesVisible]);
+
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [addDialogInitialData, setAddDialogInitialData] = useState<any>(null);
 
@@ -131,6 +144,20 @@ export function HomeContent({
             category_id: expense.category_id,
             account_id: expense.account_id,
             type: expense.type
+        });
+        setIsAddDialogOpen(true);
+    };
+
+    const handleEdit = (expense: any) => {
+        setAddDialogInitialData({
+            id: expense.id,
+            amount: expense.amount,
+            description: expense.description,
+            category_id: expense.category_id,
+            account_id: expense.account_id,
+            type: expense.type,
+            date: expense.date,
+            time: expense.time
         });
         setIsAddDialogOpen(true);
     };
@@ -319,7 +346,22 @@ export function HomeContent({
                                 <CardTitle className="text-lg font-black truncate">My Accounts</CardTitle>
                                 {/* <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em] mt-0.5 truncate">Cash/Bank/Savings etc</p> */}
                             </div>
-                            <AddAccountDialog variant="compact" />
+                            <div className="flex items-center gap-2">
+                                <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => setIsAccountBalancesVisible(!isAccountBalancesVisible)}
+                                    className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                    title={isAccountBalancesVisible ? "Hide Balances" : "Show Balances"}
+                                >
+                                    {isAccountBalancesVisible ? (
+                                        <Eye className="h-4 w-4 opacity-40 hover:opacity-100" />
+                                    ) : (
+                                        <EyeOff className="h-4 w-4 opacity-40 hover:opacity-100" />
+                                    )}
+                                </motion.button>
+                                <AddAccountDialog variant="compact" />
+                            </div>
                         </CardHeader>
                         <CardContent className="p-4 pt-0">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[560px] overflow-y-auto custom-scrollbar smooth-scroll pr-2 pb-4">
@@ -358,7 +400,7 @@ export function HomeContent({
                                         {/* Card Content: Balance & Name */}
                                         <div className="mt-4">
                                             <h4 className="text-lg font-black tracking-tighter truncate">
-                                                {currencySymbol}{Number(acc.balance).toLocaleString()}
+                                                {isAccountBalancesVisible ? `${currencySymbol}${Number(acc.balance).toLocaleString()}` : `${currencySymbol}••••`}
                                             </h4>
                                             <p className={cn(
                                                 "text-[9px] font-black mt-1 uppercase tracking-[0.15em] truncate opacity-70",
@@ -622,6 +664,7 @@ export function HomeContent({
                                                         accounts={accounts}
                                                         currencySymbol={currencySymbol}
                                                         onAddAgain={handleAddAgain}
+                                                        onEdit={handleEdit}
                                                         maxHeight="100%"
                                                     />
                                                 </div>
@@ -631,7 +674,7 @@ export function HomeContent({
                                                             <div className="h-7 w-7 sm:h-9 sm:w-9 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
                                                                 <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                                                             </div>
-                                                            <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-muted-foreground">Snapshot Net Total</span>
+                                                            <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-muted-foreground">Net Total</span>
                                                         </div>
                                                         <p className={cn(
                                                             "text-xl sm:text-2xl font-black tracking-tighter",
@@ -655,6 +698,7 @@ export function HomeContent({
                                 currencySymbol={currencySymbol}
                                 maxHeight="560px"
                                 onAddAgain={handleAddAgain}
+                                onEdit={handleEdit}
                             />
 
                             {filteredExpenses.length > 0 && (
@@ -761,6 +805,7 @@ export function HomeContent({
                                         accounts={accounts}
                                         currencySymbol={currencySymbol}
                                         onAddAgain={handleAddAgain}
+                                        onEdit={handleEdit}
                                         maxHeight="100%"
                                     />
                                 </div>

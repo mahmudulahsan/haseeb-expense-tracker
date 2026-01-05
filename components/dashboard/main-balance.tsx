@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, Settings2, CheckCircle2, Circle, HandHeart } from "lucide-react";
+import { Wallet, Settings2, CheckCircle2, Circle, HandHeart, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -42,10 +42,22 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
         return accounts.map((acc) => acc.id);
     });
 
+    const [isBalanceVisible, setIsBalanceVisible] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('isBalanceVisible');
+            return saved !== 'false'; // Default to true
+        }
+        return true;
+    });
+
     // Save to localStorage whenever selection changes
     useEffect(() => {
         localStorage.setItem('selectedAccountIds', JSON.stringify(selectedAccountIds));
     }, [selectedAccountIds]);
+
+    useEffect(() => {
+        localStorage.setItem('isBalanceVisible', JSON.stringify(isBalanceVisible));
+    }, [isBalanceVisible]);
 
     const toggleAccount = (id: string) => {
         setSelectedAccountIds((prev) =>
@@ -187,19 +199,41 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
                                     </div>
                                 </DialogContent>
                             </Dialog>
+
+                            <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => setIsBalanceVisible(!isBalanceVisible)}
+                                className="p-1.5 rounded-full hover:bg-black/5 transition-colors"
+                                title={isBalanceVisible ? "Hide Balance" : "Show Balance"}
+                            >
+                                {isBalanceVisible ? (
+                                    <Eye className="h-4 w-4 opacity-40 hover:opacity-100" />
+                                ) : (
+                                    <EyeOff className="h-4 w-4 opacity-40 hover:opacity-100" />
+                                )}
+                            </motion.button>
                         </div>
 
                         <AnimatePresence mode="wait">
                             <motion.h2
-                                key={displayBalance}
+                                key={displayBalance + (isBalanceVisible ? "visible" : "hidden")}
                                 initial={{ opacity: 0, scale: 0.98 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 transition={{ duration: 0.2 }}
                                 className="text-3xl md:text-6xl font-bold mt-6 tracking-tight text-black dark:text-white break-words"
                             >
-                                {currencySymbol}{displayBalance.toLocaleString()}
-                                <span className="text-lg md:text-2xl font-medium opacity-60 ml-2">.00</span>
+                                {isBalanceVisible ? (
+                                    <>
+                                        {currencySymbol}{displayBalance.toLocaleString()}
+                                        <span className="text-lg md:text-2xl font-medium opacity-60 ml-2">.00</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        {currencySymbol}••••••
+                                    </>
+                                )}
                             </motion.h2>
                         </AnimatePresence>
                     </div>
@@ -221,7 +255,7 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
                         <div className="flex flex-col min-w-[100px] sm:min-w-[120px]">
                             <span className="text-[10px] sm:text-sm font-medium opacity-60 text-black dark:text-white uppercase tracking-wider">Total Net</span>
                             <span className="text-base sm:text-xl font-bold text-black dark:text-white mt-0.5 sm:mt-1">
-                                {currencySymbol}{accounts.reduce((sum, acc) => sum + Number(acc.balance), 0).toLocaleString()}
+                                {isBalanceVisible ? `${currencySymbol}${accounts.reduce((sum, acc) => sum + Number(acc.balance), 0).toLocaleString()}` : `${currencySymbol}••••`}
                             </span>
                         </div>
                     </div>
