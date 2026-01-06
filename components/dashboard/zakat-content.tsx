@@ -106,9 +106,13 @@ export function ZakatContent({
         async function loadData() {
             const result = await getZakatBreakdown();
             if (result.success && result.breakdown) {
-                setForm(prev => ({ ...prev, ...result.breakdown }));
+                // Combine with initialState to ensure all fields exist
+                const fullBreakdown = { ...initialState, ...result.breakdown };
+                setForm(fullBreakdown);
             }
-            setIsLoaded(true);
+            // Set isLoaded after a short delay to ensure React state has settled
+            // and avoid debouncedSave firing with partially updated state
+            setTimeout(() => setIsLoaded(true), 200);
         }
         loadData();
     }, []);

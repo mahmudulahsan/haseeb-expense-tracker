@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
-import { decrypt } from "@/lib/crypto";
+import { decrypt, decryptNumber } from "@/lib/crypto";
 
 export async function getExpenses() {
     const session = await getSession();
@@ -32,7 +32,7 @@ export async function getExpenses() {
     return data.map((expense: any) => ({
         ...expense,
         description: expense.description ? decrypt(expense.description, vaultKey) : expense.description,
-        amount: expense.amount ? Number(decrypt(expense.amount.toString(), vaultKey)) : expense.amount
+        amount: decryptNumber(expense.amount, vaultKey)
     }));
 }
 

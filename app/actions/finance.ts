@@ -515,49 +515,38 @@ export async function getZakatBreakdown() {
         return { error: `Failed to fetch zakat breakdown: ${error.message}` };
     }
 
-    let breakdown = data?.zakat_breakdown;
-
-    // Debug log
-    console.log("RAW Zakat Breakdown from DB:", JSON.stringify(breakdown, null, 2));
+    let rawBreakdown = data?.zakat_breakdown;
+    if (!rawBreakdown) return { success: true, breakdown: {} };
 
     try {
-        if (breakdown && typeof breakdown === 'object' && 'encrypted' in breakdown) {
-            console.log("Detected encrypted object wrapper");
-            const decrypted = decrypt(breakdown.encrypted, session.vaultKey);
-            console.log("Decrypted string:", decrypted);
+        // Case 1: Encrypted object wrapper { encrypted: "..." }
+        if (typeof rawBreakdown === 'object' && 'encrypted' in rawBreakdown) {
+            const decrypted = decrypt(rawBreakdown.encrypted, session.vaultKey);
+            // If decrypt returns the same string, it failed or was not encrypted
+            if (decrypted === rawBreakdown.encrypted && decrypted.startsWith('v2:')) {
+                console.error("Zakat breakdown: v2 decryption failed (missing/wrong vault key)");
+                return { success: true, breakdown: {} };
+            }
+            return { success: true, breakdown: JSON.parse(decrypted) };
+        }
 
-            if (decrypted !== breakdown.encrypted) {
-                breakdown = JSON.parse(decrypted);
-            } else {
-                console.error("Decryption failed to alter text (wrong key?)");
+        // Case 2: Legacy encrypted string
+        if (typeof rawBreakdown === 'string') {
+            const decrypted = decrypt(rawBreakdown, session.vaultKey);
+            try {
+                return { success: true, breakdown: JSON.parse(decrypted) };
+            } catch {
+                // Not valid JSON after decryption, return empty
                 return { success: true, breakdown: {} };
             }
         }
-        else if (typeof breakdown === 'string') {
-            console.log("Detected distinct string format");
-            const decrypted = decrypt(breakdown, session.vaultKey);
-            console.log("Decrypted string (legacy):", decrypted);
-            try {
-                breakdown = JSON.parse(decrypted);
-            } catch (jsonError) {
-                console.log("Legacy string was not valid JSON");
-                if (BreakdownIsJSON(breakdown)) {
-                    breakdown = JSON.parse(breakdown);
-                } else {
-                    return { success: true, breakdown: {} };
-                }
-            }
-        }
-        else {
-            console.log("Assuming plain JSON object or empty");
-        }
+
+        // Case 3: Already an object (plaintext)
+        return { success: true, breakdown: rawBreakdown };
     } catch (e) {
-        console.error("Failed to decrypt/parse zakat breakdown:", e);
+        console.error("Failed to parse zakat breakdown:", e);
         return { success: true, breakdown: {} };
     }
-
-    console.log("Final Breakdown to return:", JSON.stringify(breakdown, null, 2));
-    return { success: true, breakdown };
 }
 
 function BreakdownIsJSON(str: string) {

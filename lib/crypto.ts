@@ -68,6 +68,26 @@ export function decrypt(text: string, userKey?: string): string {
 }
 
 /**
+ * Safely decrypts a value and returns it as a number.
+ * Returns 0 if decryption or parsing fails.
+ */
+export function decryptNumber(text: string | number | undefined, userKey?: string): number {
+    if (text === undefined || text === null || text === "") return 0;
+    if (typeof text === 'number') return text;
+
+    const decrypted = decrypt(text.toString(), userKey);
+    const num = Number(decrypted);
+
+    if (isNaN(num)) {
+        // If it's still an encrypted string (v2:...) after decryption
+        // it means decryption failed (missing/wrong key)
+        return 0;
+    }
+
+    return num;
+}
+
+/**
  * End-to-End Encryption (E2EE) helper to handle transaction sensitive fields.
  */
 export function encryptTransactionDetails(description: string, amount: number) {
