@@ -144,16 +144,28 @@ export function AddTransactionDialog({
             if (ai.amount) setAmount(ai.amount.toString());
             if (ai.description) setDescription(ai.description);
             if (ai.date) setDate(ai.date);
-            if (ai.type) setType(ai.type === "income" ? "income" : "expense");
+            if (ai.type) {
+                if (ai.type === "transfer") {
+                    setType("transfer");
+                } else {
+                    setType(ai.type === "income" ? "income" : "expense");
+                }
+            }
 
-            // Look for matching account
+            // Look for matching account (Source)
             if (ai.account) {
                 const matchAcc = accounts.find(a => a.name.toLowerCase() === ai.account.toLowerCase());
                 if (matchAcc) setSelectedAccount(matchAcc.id);
             }
 
+            // Look for matching to_account (Destination)
+            if (ai.toAccount) {
+                const matchToAcc = accounts.find(a => a.name.toLowerCase() === ai.toAccount.toLowerCase());
+                if (matchToAcc) setSelectedToAccount(matchToAcc.id);
+            }
+
             // Look for matching category
-            if (ai.category) {
+            if (ai.category && ai.type !== "transfer") {
                 const matchCat = categories.find(c => c.name.toLowerCase() === ai.category.toLowerCase());
                 if (matchCat) {
                     setSelectedCategory(matchCat.id);

@@ -29,11 +29,13 @@ export async function parseTransactionWithAI(text: string, categories: any[], ac
 Extract the following fields in JSON format:
 - amount: (number)
 - category: (string, match one of these if possible: ${categoryNames}. Ignore for transfers)
-- account: (string, match one of these if possible: ${accountNames}. For transfers, this is the SOURCE)
-- toAccount: (string, ONLY for transfers, match one of these: ${accountNames}. This is the DESTINATION)
+- account: (string, match one of these if possible: ${accountNames}. For transfers, this is the SOURCE account)
+- toAccount: (string, ONLY for transfers, match one of these: ${accountNames}. This is the DESTINATION account)
 - type: (string, either 'expense', 'income', or 'transfer')
 - description: (string, brief summary)
 - date: (string, YYYY-MM-DD, defaults to today ${today} if not mentioned)
+
+A 'transfer' is when money moves between two accounts. Example: "Transfer 100 from Wallet to Savings" should result in type: "transfer", account: "Wallet", toAccount: "Savings", amount: 100.
 
 IMPORTANT: Output ONLY the raw JSON object. Do not include markdown code blocks or any other text.`;
 

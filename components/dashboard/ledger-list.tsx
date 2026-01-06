@@ -79,7 +79,7 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                 {selectedIds.length} Selected
                             </span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -87,18 +87,23 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                     const allIds = expenses.map(e => e.id);
                                     setSelectedIds(allIds.length === selectedIds.length ? [] : allIds);
                                 }}
-                                className="h-8 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-primary/5 hover:text-primary transition-all"
+                                className="h-8 px-2 sm:px-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-primary/5 hover:text-primary transition-all"
                             >
-                                {selectedIds.length === expenses.length ? "Deselect All" : "Select All"}
+                                {selectedIds.length === expenses.length ? (
+                                    <span className="flex items-center gap-1"><X className="h-3 w-3" /> <span className="hidden sm:inline">None</span></span>
+                                ) : (
+                                    <span className="flex items-center gap-1"><Check className="h-3 w-3" /> <span className="hidden sm:inline">All</span></span>
+                                )}
+                                <span className="sm:inline ml-1">{selectedIds.length === expenses.length ? "Deselect" : "Select"}</span>
                             </Button>
                             <Button
                                 variant="destructive"
                                 size="sm"
                                 onClick={() => setShowConfirm(true)}
                                 disabled={isDeleting}
-                                className="h-8 text-[10px] font-black uppercase tracking-widest rounded-xl bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 gap-2 border-none"
+                                className="h-8 px-2 sm:px-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-xl bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 gap-1.5 sm:gap-2 border-none"
                             >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                 <span>Delete</span>
                             </Button>
                         </div>
@@ -162,7 +167,7 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                             : "hover:bg-gray-50 dark:hover:bg-white/5 hover:border-dashed hover:border-gray-200 dark:hover:border-white/20"
                                     )}
                                 >
-                                    <div className="flex items-center gap-4 flex-1">
+                                    <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
                                         <div
                                             className={cn(
                                                 "h-5 w-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0",
@@ -177,22 +182,22 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                         <motion.div
                                             whileHover={{ scale: 1.1, rotate: 5 }}
                                             className={cn(
-                                                "h-10 w-10 rounded-[1rem] shadow-sm flex items-center justify-center font-bold text-sm shrink-0",
+                                                "h-8 w-8 sm:h-10 sm:w-10 rounded-xl sm:rounded-[1rem] shadow-sm flex items-center justify-center font-bold text-xs sm:text-sm shrink-0",
                                                 expense.type === 'income' ? "bg-emerald-500/10 text-emerald-600" :
                                                     expense.type === 'transfer' ? "bg-blue-500/10 text-blue-600" :
                                                         "bg-orange-500/10 text-orange-600"
                                             )}
                                         >
-                                            {expense.type === 'transfer' ? <ArrowRightLeft className="h-4 w-4" /> : (expense.categories?.name?.charAt(0) || "U")}
+                                            {expense.type === 'transfer' ? <ArrowRightLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : (expense.categories?.name?.charAt(0) || "U")}
                                         </motion.div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="font-bold truncate">{expense.description}</p>
-                                            <div className="flex items-center gap-2 overflow-hidden">
-                                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest truncate shrink-0">
+                                            <p className="font-bold truncate text-sm sm:text-base leading-tight">{expense.description}</p>
+                                            <div className="flex items-center gap-1 sm:gap-2 mt-0.5 overflow-hidden">
+                                                <p className="text-[9px] sm:text-[10px] text-muted-foreground font-bold uppercase tracking-tight sm:tracking-widest truncate shrink-0 max-w-[80px] sm:max-w-none">
                                                     {accounts.find(a => a.id === expense.account_id)?.name || "External"}
                                                     {expense.type === 'transfer' && (
                                                         <>
-                                                            <span className="mx-1">→</span>
+                                                            <span className="mx-0.5 sm:mx-1">→</span>
                                                             {accounts.find(a => a.id === expense.to_account_id)?.name || "External"}
                                                         </>
                                                     )}
@@ -200,7 +205,7 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                                 {expense.type !== 'transfer' && (
                                                     <>
                                                         <span className="text-[8px] opacity-30 shrink-0">•</span>
-                                                        <p className="text-[10px] text-primary/60 font-bold uppercase tracking-widest truncate">
+                                                        <p className="text-[9px] sm:text-[10px] text-primary/60 font-bold uppercase tracking-tight sm:tracking-widest truncate">
                                                             {expense.categories?.name || "Uncategorized"}
                                                         </p>
                                                     </>
@@ -208,7 +213,7 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                                 {expense.time && (
                                                     <>
                                                         <span className="text-[8px] opacity-30 shrink-0">•</span>
-                                                        <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest shrink-0">
+                                                        <p className="text-[9px] sm:text-[10px] text-zinc-400 font-bold uppercase tracking-tight sm:tracking-widest shrink-0">
                                                             {formatDisplayTime(expense.time)}
                                                         </p>
                                                     </>
@@ -216,37 +221,39 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="text-right flex items-center gap-3">
+                                    <div className="text-right flex items-center gap-2 sm:gap-3 shrink-0 ml-2">
                                         <motion.div
                                             initial={{ scale: 0.9 }}
                                             animate={{ scale: 1 }}
+                                            className="flex flex-col items-end"
                                         >
                                             <p className={cn(
-                                                "font-black text-base sm:text-lg",
+                                                "font-black text-sm sm:text-lg whitespace-nowrap",
                                                 expense.type === 'income' ? "text-emerald-500" :
                                                     expense.type === 'transfer' ? "text-blue-500" :
                                                         "text-orange-500"
                                             )}>
                                                 {expense.type === 'income' ? '+' : expense.type === 'expense' ? '-' : ''}{currencySymbol}{expense.amount.toFixed(2)}
                                             </p>
-                                            <Badge variant="outline" className="text-[9px] uppercase tracking-tighter h-5 px-2">
+                                            <Badge variant="outline" className="text-[8px] sm:text-[9px] uppercase tracking-tighter h-4 sm:h-5 px-1 sm:px-2 mt-0.5 sm:mt-0">
                                                 {expense.type}
                                             </Badge>
                                         </motion.div>
-                                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex items-center gap-1 sm:gap-2" onClick={(e) => e.stopPropagation()}>
                                             {onAddAgain && (
                                                 <motion.div
                                                     whileHover={{ scale: 1.15 }}
                                                     whileTap={{ scale: 0.9 }}
+                                                    className="hidden sm:block"
                                                 >
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={() => onAddAgain(expense)}
-                                                        className="h-8 w-8 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all duration-300 shadow-lg shadow-primary/10 border border-primary/20"
+                                                        className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all duration-300 shadow-lg shadow-primary/10 border border-primary/20"
                                                         title="Add Again"
                                                     >
-                                                        <Plus className="h-4 w-4" />
+                                                        <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                                     </Button>
                                                 </motion.div>
                                             )}
@@ -254,19 +261,22 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                                 <motion.div
                                                     whileHover={{ scale: 1.15 }}
                                                     whileTap={{ scale: 0.9 }}
+                                                    className="hidden sm:block"
                                                 >
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={() => onEdit(expense)}
-                                                        className="h-8 w-8 rounded-full bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white transition-all duration-300 shadow-lg shadow-blue-500/10 border border-blue-200 dark:border-blue-900/30"
+                                                        className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white transition-all duration-300 shadow-lg shadow-blue-500/10 border border-blue-200 dark:border-blue-900/30"
                                                         title="Edit Transaction"
                                                     >
-                                                        <Pencil className="h-3.5 w-3.5" />
+                                                        <Pencil className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                                     </Button>
                                                 </motion.div>
                                             )}
-                                            <DeleteTransactionButton id={expense.id} />
+                                            <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0">
+                                                <DeleteTransactionButton id={expense.id} />
+                                            </div>
                                         </div>
                                     </div>
                                 </motion.div>
