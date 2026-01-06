@@ -319,7 +319,7 @@ export function HomeContent({
                         <StatCard
                             title="Monthly Income"
                             value={`${currencySymbol}${totalIncome.toLocaleString()}`}
-                            change="+12.5%"
+                            change={`Income in ${MONTHS[parseInt(filterMonth) - 1]}`}
                             icon={ArrowUpRight}
                             color="bg-emerald-500 text-white"
                         />
@@ -328,7 +328,7 @@ export function HomeContent({
                         <StatCard
                             title="Monthly Outcome"
                             value={`${currencySymbol}${totalSpent.toLocaleString()}`}
-                            change="+5.2%"
+                            change={`Spent in ${MONTHS[parseInt(filterMonth) - 1]}`}
                             icon={ArrowDownRight}
                             color="bg-orange-500 text-white"
                         />
