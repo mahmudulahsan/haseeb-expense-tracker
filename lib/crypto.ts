@@ -7,22 +7,24 @@ const IV_LENGTH = 16;
 
 /**
  * Encrypts a string or number using AES-256-CBC.
- * Returns a string in the format "iv:ciphertext"
+ * Returns a string in the format "v2:iv:ciphertext" (if userKey provided) or "iv:ciphertext" (legacy)
  */
-export function encrypt(data: string | number): string {
+export function encrypt(data: string | number, userKey?: string): string {
     if (data === undefined || data === null || data === "") return "";
     const text = data.toString();
 
     try {
-        // Ensure key is 32 bytes
-        const key = crypto.createHash("sha256").update(ENCRYPTION_KEY).digest();
+        // Use v2 if userKey is provided, otherwise legacy
+        const baseKey = userKey ? ENCRYPTION_KEY + userKey : ENCRYPTION_KEY;
+        const key = crypto.createHash("sha256").update(baseKey).digest();
         const iv = crypto.randomBytes(IV_LENGTH);
         const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
 
         let encrypted = cipher.update(text);
         encrypted = Buffer.concat([encrypted, cipher.final()]);
 
-        return iv.toString("hex") + ":" + encrypted.toString("hex");
+        const result = iv.toString("hex") + ":" + encrypted.toString("hex");
+        return userKey ? `v2:${result}` : result;
     } catch (error) {
         console.error("Encryption error:", error);
         return data.toString(); // Fallback to plaintext string if error
@@ -30,14 +32,26 @@ export function encrypt(data: string | number): string {
 }
 
 /**
- * Decrypts a string in the "iv:ciphertext" format.
+ * Decrypts a string in the "iv:ciphertext" or "v2:iv:ciphertext" format.
  */
-export function decrypt(text: string): string {
+export function decrypt(text: string, userKey?: string): string {
     if (!text || !text.includes(":")) return text;
 
     try {
-        const key = crypto.createHash("sha256").update(ENCRYPTION_KEY).digest();
-        const parts = text.split(":");
+        let isV2 = false;
+        let dataToDecrypt = text;
+
+        if (text.startsWith("v2:")) {
+            isV2 = true;
+            dataToDecrypt = text.substring(3);
+        }
+
+        // Use userKey only if it's V2 and userKey is provided
+        // If it's V2 but no userKey (e.g. session expired or legacy call), it will likely fail
+        const baseKey = (isV2 && userKey) ? ENCRYPTION_KEY + userKey : ENCRYPTION_KEY;
+
+        const key = crypto.createHash("sha256").update(baseKey).digest();
+        const parts = dataToDecrypt.split(":");
         const iv = Buffer.from(parts.shift() || "", "hex");
         const encryptedText = Buffer.from(parts.join(":"), "hex");
 
@@ -48,7 +62,7 @@ export function decrypt(text: string): string {
 
         return decrypted.toString();
     } catch (error) {
-        // If decryption fails, it might be plaintext already
+        // If decryption fails, it might be plaintext already or wrong key
         return text;
     }
 }

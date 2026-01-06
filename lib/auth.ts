@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 
 const secretKey = process.env.JWT_SECRET || "default_secret_key_change_me_in_production";
 const key = new TextEncoder().encode(secretKey);
@@ -24,11 +25,22 @@ export async function decrypt(input: string): Promise<any> {
     }
 }
 
-export async function login(user: { id: string; email: string }) {
+export async function login(user: { id: string; email: string }, vaultKey?: string) {
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const session = await encrypt({ user, expires });
 
-    (await cookies()).set("session", session, { expires, httpOnly: true });
+    // Hash the vaultKey before storing in session for added security
+    const hashedVaultKey = vaultKey ? createHash("sha256").update(vaultKey).digest("hex") : undefined;
+
+    // vaultKey is stored in the session to be used for data encryption/decryption
+    // it's never stored in the database.
+    const session = await encrypt({ user, expires, vaultKey: hashedVaultKey });
+
+    (await cookies()).set("session", session, {
+        expires,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax"
+    });
 }
 
 export async function logout() {
@@ -54,6 +66,8 @@ export async function updateSession(request: NextRequest) {
         name: "session",
         value: await encrypt(parsed),
         httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
         expires: parsed.expires,
     });
     return res;

@@ -74,12 +74,14 @@ export async function createTransaction(formData: FormData) {
     const transaction = validatedFields.data;
     const originalAmount = transaction.amount;
 
+    const vaultKey = session.vaultKey;
+
     // Encrypt sensitive fields
     if (transaction.description) {
-        transaction.description = encrypt(transaction.description);
+        transaction.description = encrypt(transaction.description, vaultKey);
     }
     // Encrypt amount for DB storage (cast to any to bypass type check for insertion)
-    (transaction as any).amount = encrypt(originalAmount);
+    (transaction as any).amount = encrypt(originalAmount, vaultKey);
 
     // 1. Get current account balance
     const { data: account, error: accFetchError } = await supabase
@@ -187,7 +189,8 @@ export async function updateTransaction(id: string, formData: FormData) {
         return { error: "Transaction not found" };
     }
 
-    const oldAmountValue = Number(decrypt(oldTx.amount));
+    const vaultKey = session.vaultKey;
+    const oldAmountValue = Number(decrypt(oldTx.amount, vaultKey));
 
     // 2. Revert balance on the OLD account(s)
     if (oldTx.type === "transfer") {
@@ -224,10 +227,10 @@ export async function updateTransaction(id: string, formData: FormData) {
 
     // 3. Encrypt relevant fields for update
     if (updatedData.description) {
-        updatedData.description = encrypt(updatedData.description);
+        updatedData.description = encrypt(updatedData.description, vaultKey);
     }
     // Encrypt amount for DB storage
-    (updatedData as any).amount = encrypt(newAmount);
+    (updatedData as any).amount = encrypt(newAmount, vaultKey);
 
     // 4. Update the transaction
     const { error: updateTxError } = await supabase
@@ -327,7 +330,8 @@ export async function deleteTransaction(id: string) {
     }
 
     // 3. Revert balance
-    const amount = Number(decrypt(tx.amount));
+    const vaultKey = session.vaultKey;
+    const amount = Number(decrypt(tx.amount, vaultKey));
     if (tx.type === "transfer") {
         // Revert source (increment back)
         if (tx.account_id) {
@@ -394,9 +398,10 @@ export async function deleteTransactionsBulk(ids: string[]) {
     }
 
     // 3. Group by account to minimize updates
+    const vaultKey = session.vaultKey;
     const balanceAdjustments: Record<string, number> = {};
     for (const tx of transactions) {
-        const amount = Number(decrypt(tx.amount));
+        const amount = Number(decrypt(tx.amount, vaultKey));
         if (tx.type === "transfer") {
             if (tx.account_id) {
                 balanceAdjustments[tx.account_id] = (balanceAdjustments[tx.account_id] || 0) + amount;
@@ -518,7 +523,7 @@ export async function getZakatBreakdown() {
     try {
         if (breakdown && typeof breakdown === 'object' && 'encrypted' in breakdown) {
             console.log("Detected encrypted object wrapper");
-            const decrypted = decrypt(breakdown.encrypted);
+            const decrypted = decrypt(breakdown.encrypted, session.vaultKey);
             console.log("Decrypted string:", decrypted);
 
             if (decrypted !== breakdown.encrypted) {
@@ -530,7 +535,7 @@ export async function getZakatBreakdown() {
         }
         else if (typeof breakdown === 'string') {
             console.log("Detected distinct string format");
-            const decrypted = decrypt(breakdown);
+            const decrypted = decrypt(breakdown, session.vaultKey);
             console.log("Decrypted string (legacy):", decrypted);
             try {
                 breakdown = JSON.parse(decrypted);
@@ -578,7 +583,7 @@ export async function updateZakatBreakdown(breakdown: any) {
 
     // Encrypt the breakdown data and wrap in object
     const encryptedBreakdown = {
-        encrypted: encrypt(JSON.stringify(cleanBreakdown))
+        encrypted: encrypt(JSON.stringify(cleanBreakdown), session.vaultKey)
     };
 
     const { error } = await supabase
@@ -606,7 +611,7 @@ export async function updateZakatTarget(amount: number) {
     const supabase = createAdminClient();
 
     // Encrypt the amount
-    const encryptedTarget = encrypt(amount);
+    const encryptedTarget = encrypt(amount, session.vaultKey);
 
     const { error } = await supabase
         .from("profiles")
@@ -749,9 +754,20 @@ export async function generateInsights(expenses: any[], categories: any[], curre
             console.log(`AI INSIGHTS: Days since last generation: ${diffInDays.toFixed(2)}`);
 
             if (diffInDays < 5) {
+                // Decrypt cached insights
+                let decryptedInsights = existing.insights;
+                if (existing.insights && typeof existing.insights === 'object' && 'encrypted' in existing.insights) {
+                    const decrypted = decrypt(existing.insights.encrypted, session.vaultKey);
+                    try {
+                        decryptedInsights = JSON.parse(decrypted);
+                    } catch (e) {
+                        console.error("Failed to parse decrypted insights");
+                    }
+                }
+
                 return {
                     success: true,
-                    insights: existing.insights,
+                    insights: decryptedInsights,
                     source: "cache",
                     lastUpdated: existing.created_at
                 };
@@ -762,13 +778,17 @@ export async function generateInsights(expenses: any[], categories: any[], curre
         console.log("AI INSIGHTS: Fetching fresh AI analysis...");
         const insights = await getSmartInsights(expenses, categories, currencySymbol, localDate);
 
-        // 3. Save/Update in DB
+        // 3. Save/Update in DB (Encrypted)
+        const encryptedInsights = {
+            encrypted: encrypt(JSON.stringify(insights), session.vaultKey)
+        };
+
         // We MUST specify onConflict: 'user_id' because user_id is our unique identifier for caching
         const { error: saveError } = await supabase
             .from("ai_insights")
             .upsert({
                 user_id: session.user.id,
-                insights,
+                insights: encryptedInsights,
                 created_at: new Date().toISOString()
             }, {
                 onConflict: "user_id"
