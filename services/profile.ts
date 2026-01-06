@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
+import { decrypt } from "@/lib/crypto";
 
 export async function getProfile() {
     const session = await getSession();
@@ -15,6 +16,16 @@ export async function getProfile() {
     if (error) {
         console.error("Error fetching profile:", error);
         return null;
+    }
+
+    if (data && data.zakat_target != null) {
+        // If it's a string containing ':', it's likely encrypted
+        if (typeof data.zakat_target === 'string' && data.zakat_target.includes(':')) {
+            data.zakat_target = Number(decrypt(data.zakat_target));
+        } else {
+            // It might be a number or a plain string (old data)
+            data.zakat_target = Number(data.zakat_target);
+        }
     }
 
     return data;

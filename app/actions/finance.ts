@@ -493,29 +493,6 @@ export async function signUserOut() {
     redirect("/login");
 }
 
-export async function updateZakatBreakdown(breakdown: any) {
-    const session = await getSession();
-    if (!session) return { error: "Unauthorized" };
-
-    const supabase = createAdminClient();
-
-    const { error } = await supabase
-        .from("profiles")
-        .update({
-            zakat_breakdown: breakdown,
-            updated_at: new Date().toISOString(),
-        })
-        .eq("id", session.user.id);
-
-    if (error) {
-        console.error("Zakat breakdown update error:", error);
-        return { error: `Failed to update zakat breakdown: ${error.message}` };
-    }
-
-    revalidatePath("/");
-    return { success: true };
-}
-
 export async function getZakatBreakdown() {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };
@@ -533,7 +510,92 @@ export async function getZakatBreakdown() {
         return { error: `Failed to fetch zakat breakdown: ${error.message}` };
     }
 
-    return { success: true, breakdown: data?.zakat_breakdown };
+    let breakdown = data?.zakat_breakdown;
+
+    // Debug log
+    console.log("RAW Zakat Breakdown from DB:", JSON.stringify(breakdown, null, 2));
+
+    try {
+        if (breakdown && typeof breakdown === 'object' && 'encrypted' in breakdown) {
+            console.log("Detected encrypted object wrapper");
+            const decrypted = decrypt(breakdown.encrypted);
+            console.log("Decrypted string:", decrypted);
+
+            if (decrypted !== breakdown.encrypted) {
+                breakdown = JSON.parse(decrypted);
+            } else {
+                console.error("Decryption failed to alter text (wrong key?)");
+                return { success: true, breakdown: {} };
+            }
+        }
+        else if (typeof breakdown === 'string') {
+            console.log("Detected distinct string format");
+            const decrypted = decrypt(breakdown);
+            console.log("Decrypted string (legacy):", decrypted);
+            try {
+                breakdown = JSON.parse(decrypted);
+            } catch (jsonError) {
+                console.log("Legacy string was not valid JSON");
+                if (BreakdownIsJSON(breakdown)) {
+                    breakdown = JSON.parse(breakdown);
+                } else {
+                    return { success: true, breakdown: {} };
+                }
+            }
+        }
+        else {
+            console.log("Assuming plain JSON object or empty");
+        }
+    } catch (e) {
+        console.error("Failed to decrypt/parse zakat breakdown:", e);
+        return { success: true, breakdown: {} };
+    }
+
+    console.log("Final Breakdown to return:", JSON.stringify(breakdown, null, 2));
+    return { success: true, breakdown };
+}
+
+function BreakdownIsJSON(str: string) {
+    try {
+        JSON.parse(str);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+export async function updateZakatBreakdown(breakdown: any) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    // Sanitize: verify breakdown is an object and remove 'encrypted' key if it snuck in
+    const cleanBreakdown = { ...breakdown };
+    if ('encrypted' in cleanBreakdown) {
+        delete cleanBreakdown.encrypted;
+    }
+
+    // Encrypt the breakdown data and wrap in object
+    const encryptedBreakdown = {
+        encrypted: encrypt(JSON.stringify(cleanBreakdown))
+    };
+
+    const { error } = await supabase
+        .from("profiles")
+        .update({
+            zakat_breakdown: encryptedBreakdown,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", session.user.id);
+
+    if (error) {
+        console.error("Zakat breakdown update error:", error);
+        return { error: `Failed to update zakat breakdown: ${error.message}` };
+    }
+
+    revalidatePath("/");
+    return { success: true };
 }
 
 
@@ -543,10 +605,14 @@ export async function updateZakatTarget(amount: number) {
 
     const supabase = createAdminClient();
 
+    // Encrypt the amount
+    const encryptedTarget = encrypt(amount);
+
     const { error } = await supabase
         .from("profiles")
         .update({
-            zakat_target: amount,
+            // @ts-ignore: Assuming DB column is now text
+            zakat_target: encryptedTarget,
             updated_at: new Date().toISOString(),
         })
         .eq("id", session.user.id);

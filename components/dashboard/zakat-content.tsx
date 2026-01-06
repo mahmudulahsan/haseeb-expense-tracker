@@ -233,7 +233,7 @@ export function ZakatContent({
         setIsSaving(false);
         if (result.success) {
             setSaveSuccess(true);
-            toast.success("Zakat target synced with dashboard");
+            toast.success("Zakat target updated successfully");
             setTimeout(() => setSaveSuccess(false), 3000);
         } else {
             toast.error(result.error);

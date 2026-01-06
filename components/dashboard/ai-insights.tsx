@@ -139,7 +139,7 @@ export function AIInsights({ expenses, categories, currencySymbol = "$" }: AIIns
                     </CardTitle>
                     <div className="flex flex-wrap items-center gap-2">
                         <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-                            Personalized analysis of your spending behavior
+                            Personalized analysis of your spending behavior. Refreshes every 5 days.
                         </p>
                         {lastUpdated && (
                             <>
@@ -151,20 +151,6 @@ export function AIInsights({ expenses, categories, currencySymbol = "$" }: AIIns
                         )}
                     </div>
                 </div>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => fetchInsights(true)}
-                    disabled={isLoading}
-                    className="rounded-full hover:bg-indigo-500/10 hover:text-indigo-600 transition-all active:scale-95"
-                >
-                    {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                        <RefreshCw className="h-4 w-4" />
-                    )}
-                    <span className="ml-2 hidden sm:inline">Refresh</span>
-                </Button>
             </CardHeader>
             <CardContent>
                 {isLoading && insights.length === 0 ? (
