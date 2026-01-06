@@ -25,9 +25,15 @@ export default async function DashboardLayout({
                 profileCurrency={profile?.currency}
             />
 
-            <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pt-4 sm:pt-10 pb-24">
+            <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pt-4 sm:pt-10 pb-16">
                 {children}
             </main>
+
+            <footer className="w-full max-w-7xl mx-auto px-4 sm:px-8 pb-8 text-center">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 hover:text-primary transition-colors duration-500">
+                    Developed by <a href="https://ahsan-xp.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:underline">Mahmudul Ahsan</a>
+                </p>
+            </footer>
         </div>
     );
 }
