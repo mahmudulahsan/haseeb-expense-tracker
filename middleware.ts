@@ -5,7 +5,7 @@ export async function middleware(request: NextRequest) {
     const session = await getSession();
 
     // Paths that don't require authentication
-    const publicPaths = ["/login", "/api/auth/otp/send", "/api/auth/otp/verify"];
+    const publicPaths = ["/login", "/api/auth/otp/send", "/api/auth/otp/verify", "/admin"];
     const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
 
     if (!session && !isPublicPath) {

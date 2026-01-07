@@ -6,51 +6,41 @@ const ALGORITHM = "aes-256-cbc";
 const IV_LENGTH = 16;
 
 /**
- * Encrypts a string or number using AES-256-CBC.
- * Returns a string in the format "v2:iv:ciphertext" (if userKey provided) or "iv:ciphertext" (legacy)
+ * Encrypts a string or number using AES-256-CBC with Server Key only.
+ * Returns a string in the format "iv:ciphertext"
  */
-export function encrypt(data: string | number, userKey?: string): string {
+export function encrypt(data: string | number): string {
     if (data === undefined || data === null || data === "") return "";
     const text = data.toString();
 
     try {
-        // Use v2 if userKey is provided, otherwise legacy
-        const baseKey = userKey ? ENCRYPTION_KEY + userKey : ENCRYPTION_KEY;
-        const key = crypto.createHash("sha256").update(baseKey).digest();
+        const key = crypto.createHash("sha256").update(ENCRYPTION_KEY).digest();
         const iv = crypto.randomBytes(IV_LENGTH);
         const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
 
         let encrypted = cipher.update(text);
         encrypted = Buffer.concat([encrypted, cipher.final()]);
 
-        const result = iv.toString("hex") + ":" + encrypted.toString("hex");
-        return userKey ? `v2:${result}` : result;
+        return iv.toString("hex") + ":" + encrypted.toString("hex");
     } catch (error) {
         console.error("Encryption error:", error);
-        return data.toString(); // Fallback to plaintext string if error
+        return data.toString();
     }
 }
 
 /**
- * Decrypts a string in the "iv:ciphertext" or "v2:iv:ciphertext" format.
+ * Decrypts a string in the "iv:ciphertext" format using Server Key only.
  */
-export function decrypt(text: string, userKey?: string): string {
+export function decrypt(text: string): string {
     if (!text || !text.includes(":")) return text;
 
+    // Treat v2 data as unreadable/legacy - return empty
+    if (text.startsWith("v2:")) return "";
+
     try {
-        let isV2 = false;
-        let dataToDecrypt = text;
+        const dataToDecrypt = text;
 
-        if (text.startsWith("v2:")) {
-            isV2 = true;
-            dataToDecrypt = text.substring(3);
-        }
-
-        // Use userKey only if it's V2 and userKey is provided
-        // If it's V2 but no userKey (e.g. session expired or legacy call), it will likely fail
-        const baseKey = (isV2 && userKey) ? ENCRYPTION_KEY + userKey : ENCRYPTION_KEY;
-
-        const key = crypto.createHash("sha256").update(baseKey).digest();
+        const key = crypto.createHash("sha256").update(ENCRYPTION_KEY).digest();
         const parts = dataToDecrypt.split(":");
         const iv = Buffer.from(parts.shift() || "", "hex");
         const encryptedText = Buffer.from(parts.join(":"), "hex");
@@ -62,7 +52,6 @@ export function decrypt(text: string, userKey?: string): string {
 
         return decrypted.toString();
     } catch (error) {
-        // If decryption fails, it might be plaintext already or wrong key
         return text;
     }
 }
@@ -71,24 +60,20 @@ export function decrypt(text: string, userKey?: string): string {
  * Safely decrypts a value and returns it as a number.
  * Returns 0 if decryption or parsing fails.
  */
-export function decryptNumber(text: string | number | undefined, userKey?: string): number {
+export function decryptNumber(text: string | number | undefined): number {
     if (text === undefined || text === null || text === "") return 0;
     if (typeof text === 'number') return text;
 
-    const decrypted = decrypt(text.toString(), userKey);
+    const decrypted = decrypt(text.toString());
     const num = Number(decrypted);
 
-    if (isNaN(num)) {
-        // If it's still an encrypted string (v2:...) after decryption
-        // it means decryption failed (missing/wrong key)
-        return 0;
-    }
+    if (isNaN(num)) return 0;
 
     return num;
 }
 
 /**
- * End-to-End Encryption (E2EE) helper to handle transaction sensitive fields.
+ * Server-Side Encryption helper for transactions.
  */
 export function encryptTransactionDetails(description: string, amount: number) {
     return {

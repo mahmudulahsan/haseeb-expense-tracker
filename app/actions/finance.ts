@@ -74,14 +74,12 @@ export async function createTransaction(formData: FormData) {
     const transaction = validatedFields.data;
     const originalAmount = transaction.amount;
 
-    const vaultKey = session.vaultKey;
-
     // Encrypt sensitive fields
     if (transaction.description) {
-        transaction.description = encrypt(transaction.description, vaultKey);
+        transaction.description = encrypt(transaction.description);
     }
     // Encrypt amount for DB storage (cast to any to bypass type check for insertion)
-    (transaction as any).amount = encrypt(originalAmount, vaultKey);
+    (transaction as any).amount = encrypt(originalAmount);
 
     // 1. Get current account balance
     const { data: account, error: accFetchError } = await supabase
@@ -189,8 +187,7 @@ export async function updateTransaction(id: string, formData: FormData) {
         return { error: "Transaction not found" };
     }
 
-    const vaultKey = session.vaultKey;
-    const oldAmountValue = Number(decrypt(oldTx.amount, vaultKey));
+    const oldAmountValue = Number(decrypt(oldTx.amount));
 
     // 2. Revert balance on the OLD account(s)
     if (oldTx.type === "transfer") {
@@ -227,10 +224,10 @@ export async function updateTransaction(id: string, formData: FormData) {
 
     // 3. Encrypt relevant fields for update
     if (updatedData.description) {
-        updatedData.description = encrypt(updatedData.description, vaultKey);
+        updatedData.description = encrypt(updatedData.description);
     }
     // Encrypt amount for DB storage
-    (updatedData as any).amount = encrypt(newAmount, vaultKey);
+    (updatedData as any).amount = encrypt(newAmount);
 
     // 4. Update the transaction
     const { error: updateTxError } = await supabase
@@ -330,8 +327,7 @@ export async function deleteTransaction(id: string) {
     }
 
     // 3. Revert balance
-    const vaultKey = session.vaultKey;
-    const amount = Number(decrypt(tx.amount, vaultKey));
+    const amount = Number(decrypt(tx.amount));
     if (tx.type === "transfer") {
         // Revert source (increment back)
         if (tx.account_id) {
@@ -398,10 +394,9 @@ export async function deleteTransactionsBulk(ids: string[]) {
     }
 
     // 3. Group by account to minimize updates
-    const vaultKey = session.vaultKey;
     const balanceAdjustments: Record<string, number> = {};
     for (const tx of transactions) {
-        const amount = Number(decrypt(tx.amount, vaultKey));
+        const amount = Number(decrypt(tx.amount));
         if (tx.type === "transfer") {
             if (tx.account_id) {
                 balanceAdjustments[tx.account_id] = (balanceAdjustments[tx.account_id] || 0) + amount;
@@ -521,7 +516,7 @@ export async function getZakatBreakdown() {
     try {
         // Case 1: Encrypted object wrapper { encrypted: "..." }
         if (typeof rawBreakdown === 'object' && 'encrypted' in rawBreakdown) {
-            const decrypted = decrypt(rawBreakdown.encrypted, session.vaultKey);
+            const decrypted = decrypt(rawBreakdown.encrypted);
             // If decrypt returns the same string, it failed or was not encrypted
             if (decrypted === rawBreakdown.encrypted && decrypted.startsWith('v2:')) {
                 console.error("Zakat breakdown: v2 decryption failed (missing/wrong vault key)");
@@ -532,7 +527,7 @@ export async function getZakatBreakdown() {
 
         // Case 2: Legacy encrypted string
         if (typeof rawBreakdown === 'string') {
-            const decrypted = decrypt(rawBreakdown, session.vaultKey);
+            const decrypted = decrypt(rawBreakdown);
             try {
                 return { success: true, breakdown: JSON.parse(decrypted) };
             } catch {
@@ -572,7 +567,7 @@ export async function updateZakatBreakdown(breakdown: any) {
 
     // Encrypt the breakdown data and wrap in object
     const encryptedBreakdown = {
-        encrypted: encrypt(JSON.stringify(cleanBreakdown), session.vaultKey)
+        encrypted: encrypt(JSON.stringify(cleanBreakdown))
     };
 
     const { error } = await supabase
@@ -600,7 +595,7 @@ export async function updateZakatTarget(amount: number) {
     const supabase = createAdminClient();
 
     // Encrypt the amount
-    const encryptedTarget = encrypt(amount, session.vaultKey);
+    const encryptedTarget = encrypt(amount);
 
     const { error } = await supabase
         .from("profiles")
@@ -619,6 +614,7 @@ export async function updateZakatTarget(amount: number) {
     revalidatePath("/");
     return { success: true };
 }
+
 export async function voiceTransaction(text: string, localDate?: string) {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };
@@ -689,6 +685,7 @@ export async function voiceTransaction(text: string, localDate?: string) {
         return { error: error.message || "Failed to process voice transaction" };
     }
 }
+
 export async function parseVoiceTransaction(text: string, localDate?: string) {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };
@@ -746,7 +743,7 @@ export async function generateInsights(expenses: any[], categories: any[], curre
                 // Decrypt cached insights
                 let decryptedInsights = existing.insights;
                 if (existing.insights && typeof existing.insights === 'object' && 'encrypted' in existing.insights) {
-                    const decrypted = decrypt(existing.insights.encrypted, session.vaultKey);
+                    const decrypted = decrypt(existing.insights.encrypted);
                     try {
                         decryptedInsights = JSON.parse(decrypted);
                     } catch (e) {
@@ -769,7 +766,7 @@ export async function generateInsights(expenses: any[], categories: any[], curre
 
         // 3. Save/Update in DB (Encrypted)
         const encryptedInsights = {
-            encrypted: encrypt(JSON.stringify(insights), session.vaultKey)
+            encrypted: encrypt(JSON.stringify(insights))
         };
 
         // We MUST specify onConflict: 'user_id' because user_id is our unique identifier for caching

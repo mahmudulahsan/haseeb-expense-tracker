@@ -326,7 +326,7 @@ export function HomeContent({
                     </div>
                     <div>
                         <StatCard
-                            title="Monthly Outcome"
+                            title="Monthly Expense"
                             value={`${currencySymbol}${totalSpent.toLocaleString()}`}
                             change={`Spent in ${MONTHS[parseInt(filterMonth) - 1]}`}
                             icon={ArrowDownRight}

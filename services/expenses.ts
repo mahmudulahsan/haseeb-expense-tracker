@@ -28,11 +28,10 @@ export async function getExpenses() {
     }
 
     // Decrypt sensitive fields
-    const vaultKey = session.vaultKey;
     return data.map((expense: any) => ({
         ...expense,
-        description: expense.description ? decrypt(expense.description, vaultKey) : expense.description,
-        amount: decryptNumber(expense.amount, vaultKey)
+        description: expense.description ? decrypt(expense.description) : expense.description,
+        amount: decryptNumber(expense.amount)
     }));
 }
 
