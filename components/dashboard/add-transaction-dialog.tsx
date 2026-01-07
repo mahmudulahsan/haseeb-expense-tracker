@@ -16,7 +16,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowUpCircle, ArrowDownCircle, Check, X, Mic, Loader2, Sparkles, ArrowRightLeft } from "lucide-react";
+import { Plus, ArrowUpCircle, ArrowDownCircle, Check, X, Mic, Loader2, Sparkles, ArrowRightLeft, ShieldCheck, Scale, Gem } from "lucide-react";
 import { createTransaction, updateTransaction, createCategory, parseVoiceTransaction } from "@/app/actions/finance";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -43,6 +43,7 @@ interface AddTransactionDialogProps {
         type?: "income" | "expense" | "transfer";
         date?: string;
         time?: string;
+        necessity_level?: "necessary" | "neutral" | "unnecessary";
     };
     mode?: "add" | "edit";
 }
@@ -76,6 +77,7 @@ export function AddTransactionDialog({
     const [description, setDescription] = useState("");
     const [date, setDate] = useState(formatLocalDate());
     const [time, setTime] = useState(formatLocalTime());
+    const [necessityLevel, setNecessityLevel] = useState("neutral");
 
     // Effect to handle initialData
     useEffect(() => {
@@ -86,6 +88,7 @@ export function AddTransactionDialog({
             if (initialData.account_id !== undefined) setSelectedAccount(initialData.account_id);
             if (initialData.to_account_id !== undefined) setSelectedToAccount(initialData.to_account_id);
             if (initialData.type !== undefined) setType(initialData.type);
+            if (initialData.necessity_level !== undefined) setNecessityLevel(initialData.necessity_level);
 
             if (isEditing && initialData.date) {
                 setDate(initialData.date);
@@ -258,6 +261,7 @@ export function AddTransactionDialog({
             setNewCategoryName("");
             setType("expense");
             setSelectedToAccount("");
+            setNecessityLevel("neutral");
             setLoading(false);
         }
     };
@@ -370,7 +374,7 @@ export function AddTransactionDialog({
                             onClick={() => { setType("expense"); setIsCreatingCategory(false); setSelectedCategory(""); }}
                             className={cn(
                                 "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all",
-                                type === "expense" ? "bg-white dark:bg-black shadow-sm text-orange-500" : "text-muted-foreground"
+                                type === "expense" ? "bg-white dark:bg-black shadow-sm text-red-500" : "text-muted-foreground"
                             )}
                         >
                             <ArrowDownCircle className="h-4 w-4" />
@@ -515,6 +519,7 @@ export function AddTransactionDialog({
                             )}
                         </div>
 
+
                         <div className="space-y-2">
                             <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
                                 Description <span className="text-[10px] opacity-40 lowercase">(Optional)</span>
@@ -526,8 +531,43 @@ export function AddTransactionDialog({
                                 className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium"
                                 placeholder="Describe your transaction"
                             />
-
                         </div>
+
+                        {type === 'expense' && (
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Necessity</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {[
+                                        { value: 'necessary', icon: ShieldCheck, label: 'Necessary' },
+                                        { value: 'neutral', icon: Scale, label: 'Neutral' },
+                                        { value: 'unnecessary', icon: Gem, label: 'Unnecessary' }
+                                    ].map((item) => (
+                                        <button
+                                            key={item.value}
+                                            type="button"
+                                            onClick={() => setNecessityLevel(item.value)}
+                                            className={cn(
+                                                "group flex items-center px-4 py-2 rounded-full border transition-all duration-300 ease-out",
+                                                necessityLevel === item.value
+                                                    ? "bg-red-500 text-white border-red-500 shadow-md shadow-red-500/20 scale-105"
+                                                    : "bg-transparent border-gray-200 dark:border-white/10 text-muted-foreground hover:border-red-200 dark:hover:border-red-900/50 hover:bg-gray-50 dark:hover:bg-white/5"
+                                            )}
+                                        >
+                                            <item.icon className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                                            <span className={cn(
+                                                "overflow-hidden whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-all duration-300 ease-in-out",
+                                                necessityLevel === item.value
+                                                    ? "max-w-[100px] ml-2 opacity-100"
+                                                    : "max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:ml-2 group-hover:opacity-100"
+                                            )}>
+                                                {item.label}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                                <input type="hidden" name="necessity_level" value={necessityLevel} />
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
@@ -559,7 +599,7 @@ export function AddTransactionDialog({
                             "w-full h-14 text-lg font-bold shadow-xl transition-colors",
                             type === "income" ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20" :
                                 type === "transfer" ? "bg-blue-500 hover:bg-blue-600 shadow-blue-500/20" :
-                                    "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
+                                    "bg-red-500 hover:bg-red-600 shadow-red-500/20"
                         )}>
                             {loading ? "Saving..." : "Save Transaction"}
                         </Button>

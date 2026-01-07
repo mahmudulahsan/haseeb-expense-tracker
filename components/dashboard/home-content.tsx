@@ -143,7 +143,8 @@ export function HomeContent({
             description: expense.description,
             category_id: expense.category_id,
             account_id: expense.account_id,
-            type: expense.type
+            type: expense.type,
+            necessity_level: expense.necessity_level
         });
         setIsAddDialogOpen(true);
     };
@@ -157,7 +158,8 @@ export function HomeContent({
             account_id: expense.account_id,
             type: expense.type,
             date: expense.date,
-            time: expense.time
+            time: expense.time,
+            necessity_level: expense.necessity_level
         });
         setIsAddDialogOpen(true);
     };
@@ -229,7 +231,7 @@ export function HomeContent({
             body: tableData,
             theme: 'striped',
             headStyles: {
-                fillColor: [249, 115, 22], // primary/orange color
+                fillColor: [37, 99, 235], // primary/blue color
                 textColor: [255, 255, 255],
                 fontSize: 10,
                 fontStyle: 'bold'
@@ -290,7 +292,7 @@ export function HomeContent({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Main Card (Primary Account) */}
                 <div className="lg:col-span-8 h-full">
-                    <Card className="bg-[#FFD966] dark:bg-primary/10 border-none shadow-xl overflow-hidden h-full relative group">
+                    <Card className="bg-blue-50 dark:bg-primary/10 border-none shadow-xl overflow-hidden h-full relative group">
                         <CardContent className="p-6 sm:p-10">
                             <MainBalance
                                 accounts={accounts}
@@ -330,7 +332,7 @@ export function HomeContent({
                             value={`${currencySymbol}${totalSpent.toLocaleString()}`}
                             change={`Spent in ${MONTHS[parseInt(filterMonth) - 1]}`}
                             icon={ArrowDownRight}
-                            color="bg-orange-500 text-white"
+                            color="bg-red-500 text-white"
                         />
                     </div>
                 </div>
@@ -455,7 +457,7 @@ export function HomeContent({
                                                         "absolute inset-0 rounded-xl shadow-lg z-[-1]",
                                                         t === 'all' ? "bg-primary shadow-primary/20" :
                                                             t === 'income' ? "bg-emerald-500 shadow-emerald-500/20" :
-                                                                "bg-orange-500 shadow-orange-500/20"
+                                                                "bg-red-500 shadow-red-500/20"
                                                     )}
                                                     transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                                 />
@@ -574,7 +576,7 @@ export function HomeContent({
                                                                                 "absolute inset-0 rounded-xl shadow-lg z-[-1]",
                                                                                 t === 'all' ? "bg-primary shadow-primary/20" :
                                                                                     t === 'income' ? "bg-emerald-500 shadow-emerald-500/20" :
-                                                                                        "bg-orange-500 shadow-orange-500/20"
+                                                                                        "bg-red-500 shadow-red-500/20"
                                                                             )}
                                                                             transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                                                         />
@@ -678,7 +680,7 @@ export function HomeContent({
                                                         </div>
                                                         <p className={cn(
                                                             "text-xl sm:text-2xl font-black tracking-tighter",
-                                                            totalNet >= 0 ? "text-emerald-500" : "text-orange-500"
+                                                            totalNet >= 0 ? "text-emerald-500" : "text-red-500"
                                                         )}>
                                                             {totalNet >= 0 ? '+' : ''}{currencySymbol}{totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                         </p>
@@ -711,7 +713,7 @@ export function HomeContent({
                                     </div>
                                     <p className={cn(
                                         "text-xl font-black tracking-tight",
-                                        totalNet >= 0 ? "text-emerald-500" : "text-orange-500"
+                                        totalNet >= 0 ? "text-emerald-500" : "text-red-500"
                                     )}>
                                         {totalNet >= 0 ? '+' : ''}{currencySymbol}{totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>

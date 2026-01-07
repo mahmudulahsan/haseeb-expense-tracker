@@ -19,6 +19,7 @@ export const transactionSchema = z.object({
     description: z.string().max(1000).optional().or(z.literal("")),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
     time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "Invalid time format").optional(),
+    necessity_level: z.enum(["necessary", "neutral", "unnecessary"]).optional(),
 }).refine(data => {
     if (data.type === "transfer") {
         return !!data.to_account_id && data.to_account_id !== data.account_id;

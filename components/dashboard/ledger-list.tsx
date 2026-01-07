@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Check, Trash2, X, Plus, Pencil, ArrowRightLeft } from "lucide-react";
+import { Calendar, Check, Trash2, X, Plus, Pencil, ArrowRightLeft, ShieldCheck, Scale, Gem } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { DeleteTransactionButton } from "@/components/dashboard/delete-transaction-button";
@@ -185,7 +185,7 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                                 "h-8 w-8 sm:h-10 sm:w-10 rounded-xl sm:rounded-[1rem] shadow-sm flex items-center justify-center font-bold text-xs sm:text-sm shrink-0",
                                                 expense.type === 'income' ? "bg-emerald-500/10 text-emerald-600" :
                                                     expense.type === 'transfer' ? "bg-blue-500/10 text-blue-600" :
-                                                        "bg-orange-500/10 text-orange-600"
+                                                        "bg-red-500/10 text-red-600"
                                             )}
                                         >
                                             {expense.type === 'transfer' ? <ArrowRightLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : (expense.categories?.name?.charAt(0) || "U")}
@@ -218,6 +218,16 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                                         </p>
                                                     </>
                                                 )}
+                                                {expense.type === 'expense' && expense.necessity_level && (
+                                                    <>
+                                                        <span className="text-[8px] opacity-30 shrink-0">•</span>
+                                                        <div className="flex items-center gap-1" title={expense.necessity_level}>
+                                                            {expense.necessity_level === 'necessary' && <ShieldCheck className="h-3 w-3 text-emerald-500/70" />}
+                                                            {expense.necessity_level === 'neutral' && <Scale className="h-3 w-3 text-zinc-400" />}
+                                                            {expense.necessity_level === 'unnecessary' && <Gem className="h-3 w-3 text-rose-500/70" />}
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -231,7 +241,7 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                                                 "font-black text-sm sm:text-lg whitespace-nowrap",
                                                 expense.type === 'income' ? "text-emerald-500" :
                                                     expense.type === 'transfer' ? "text-blue-500" :
-                                                        "text-orange-500"
+                                                        "text-red-500"
                                             )}>
                                                 {expense.type === 'income' ? '+' : expense.type === 'expense' ? '-' : ''}{currencySymbol}{expense.amount.toFixed(2)}
                                             </p>

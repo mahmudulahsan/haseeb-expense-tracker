@@ -58,6 +58,7 @@ export async function createTransaction(formData: FormData) {
         to_account_id: formData.get("to_account_id"),
         date: formData.get("date"),
         time: formData.get("time"),
+        necessity_level: formData.get("necessity_level"),
     };
 
     // Filter nulls to undefined for Zod
@@ -160,6 +161,7 @@ export async function updateTransaction(id: string, formData: FormData) {
         to_account_id: formData.get("to_account_id"),
         date: formData.get("date"),
         time: formData.get("time"),
+        necessity_level: formData.get("necessity_level"),
     };
 
     const sanitizedData = Object.fromEntries(

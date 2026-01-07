@@ -8,10 +8,28 @@ export function cn(...inputs: ClassValue[]) {
 export function getCurrencySymbol(currency: string): string {
   if (!currency) return "$";
 
+  const symbols: Record<string, string> = {
+    BDT: "৳",
+    USD: "$",
+    EUR: "€",
+    GBP: "£",
+    JPY: "¥",
+    INR: "₹",
+    AUD: "$",
+    CAD: "$",
+    CNY: "¥",
+    PKR: "₨",
+  };
+
+  if (symbols[currency]) {
+    return symbols[currency];
+  }
+
   try {
     const formatter = new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency,
+      currencyDisplay: "narrowSymbol",
     });
 
     // Extract the symbol from the formatted parts

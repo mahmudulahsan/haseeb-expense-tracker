@@ -226,7 +226,7 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
             {/* Top Row: Streaks & Quick Insights */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <motion.div variants={itemVariants}>
-                    <Card className="bg-orange-500 text-white border-none shadow-xl relative overflow-hidden group h-full">
+                    <Card className="bg-blue-500 text-white border-none shadow-xl relative overflow-hidden group h-full">
                         <motion.div
                             initial={{ rotate: 0 }}
                             whileHover={{ rotate: 12, scale: 1.1 }}
@@ -383,7 +383,7 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                                                                 className={cn(
                                                                     "w-full rounded-t-2xl cursor-pointer relative",
                                                                     isMax
-                                                                        ? "bg-gradient-to-t from-primary to-orange-400 shadow-[0_-10px_30px_-10px_rgba(255,165,0,0.5)]"
+                                                                        ? "bg-gradient-to-t from-primary to-blue-300 shadow-[0_-10px_30px_-10px_rgba(37,99,235,0.5)]"
                                                                         : "bg-gray-200 dark:bg-white/10 group-hover/bar:bg-primary/40"
                                                                 )}
                                                             >

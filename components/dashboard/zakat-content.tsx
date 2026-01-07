@@ -188,11 +188,11 @@ export function ZakatContent({
             { label: "Pension", value: Number(pensionIncome), icon: Info, color: "text-slate-400" },
             { label: "Receivables", value: Number(receivables), icon: Info, color: "text-slate-400" },
             { label: "Other Capital", value: Number(otherCapital), icon: Info, color: "text-slate-400" },
-            { label: "Credit Card Debt", value: Number(creditCardDebt), icon: AlertCircle, color: "text-orange-400", isNegative: true },
-            { label: "Car Loan", value: Number(carLoan), icon: AlertCircle, color: "text-orange-400", isNegative: true },
-            { label: "Business Loan", value: Number(businessLoan), icon: AlertCircle, color: "text-orange-400", isNegative: true },
-            { label: "Family Loan", value: Number(familyLoan), icon: AlertCircle, color: "text-orange-400", isNegative: true },
-            { label: "Other Loans", value: Number(otherLoans), icon: AlertCircle, color: "text-orange-400", isNegative: true },
+            { label: "Credit Card Debt", value: Number(creditCardDebt), icon: AlertCircle, color: "text-red-400", isNegative: true },
+            { label: "Car Loan", value: Number(carLoan), icon: AlertCircle, color: "text-red-400", isNegative: true },
+            { label: "Business Loan", value: Number(businessLoan), icon: AlertCircle, color: "text-red-400", isNegative: true },
+            { label: "Family Loan", value: Number(familyLoan), icon: AlertCircle, color: "text-red-400", isNegative: true },
+            { label: "Other Loans", value: Number(otherLoans), icon: AlertCircle, color: "text-red-400", isNegative: true },
         ];
         return fields.filter(f => f.value > 0);
     }, [
@@ -305,7 +305,7 @@ export function ZakatContent({
 
                         {/* Column 2 */}
                         <div className="space-y-6">
-                            <ZakatSection title="Liabilities" icon={AlertCircle} color="bg-orange-500">
+                            <ZakatSection title="Liabilities" icon={AlertCircle} color="bg-red-500">
                                 <ZakatInput label="Credit Card Debt" value={creditCardDebt} onChange={(v) => updateField('creditCardDebt', v)} currencySymbol={currencySymbol} />
                                 <ZakatInput label="Car Loan" value={carLoan} onChange={(v) => updateField('carLoan', v)} currencySymbol={currencySymbol} />
                                 <ZakatInput label="Business Loan" value={businessLoan} onChange={(v) => updateField('businessLoan', v)} currencySymbol={currencySymbol} />
@@ -444,7 +444,7 @@ export function ZakatContent({
                                                             </div>
                                                             <span className="text-[10px] sm:text-[11px] font-bold opacity-70 group-hover/item:opacity-100 transition-opacity">{item.label}</span>
                                                         </div>
-                                                        <span className={cn("text-[11px] sm:text-xs font-black tracking-tight", item.isNegative ? "text-orange-400" : "text-white")}>
+                                                        <span className={cn("text-[11px] sm:text-xs font-black tracking-tight", item.isNegative ? "text-red-400" : "text-white")}>
                                                             {item.isNegative ? "-" : ""}{currencySymbol}{item.value.toLocaleString()}
                                                         </span>
                                                     </div>

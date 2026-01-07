@@ -135,7 +135,7 @@ export function Calculator() {
     };
 
     const buttons = [
-        { label: "AC", action: clearAll, className: "text-orange-500 bg-orange-500/10 hover:bg-orange-500/20 dark:bg-orange-500/20 dark:hover:bg-orange-500/30" },
+        { label: "AC", action: clearAll, className: "text-red-500 bg-red-500/10 hover:bg-red-500/20 dark:bg-red-500/20 dark:hover:bg-red-500/30" },
         { label: "DEL", action: deleteLast, icon: Delete, className: "bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15" },
         { label: "/", action: () => performOperation("/"), className: "bg-primary/10 text-primary font-black dark:bg-primary/20 dark:hover:bg-primary/30" },
         { label: "*", action: () => performOperation("*"), className: "bg-primary/10 text-primary font-black dark:bg-primary/20 dark:hover:bg-primary/30" },
@@ -192,7 +192,7 @@ export function Calculator() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={clearHistory}
-                                    className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+                                    className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider text-red-500 hover:text-red-600 hover:bg-red-500/10"
                                 >
                                     <Trash2 className="h-3 w-3 mr-1" />
                                     Clear
