@@ -10,7 +10,11 @@ import {
     Flame,
     Calendar,
     Target,
-    Trophy
+    Trophy,
+    ShieldCheck,
+    Scale,
+    Gem,
+    PieChart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatLocalDate, parseLocalDate } from "@/lib/date-utils";
@@ -83,7 +87,9 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                 })),
                 maxWeekly: 1,
                 maxMonthly: 1,
-                maxYearly: 1
+                maxYearly: 1,
+                necessityData: [],
+                totalNecessityExpense: 0
             };
         }
         const now = new Date();
@@ -202,6 +208,25 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
 
         const maxYearly = Math.max(...yearlyData.map(d => d.amount), 1);
 
+        // 6. Necessity Distribution
+        const necessityMap: Record<string, number> = {
+            necessary: 0,
+            neutral: 0,
+            unnecessary: 0
+        };
+        expenses.filter(e => e.type === 'expense').forEach(e => {
+            const level = e.necessity_level || 'neutral';
+            necessityMap[level] = (necessityMap[level] || 0) + Number(e.amount);
+        });
+
+        const totalNecessityExpense = Object.values(necessityMap).reduce((acc, curr) => acc + curr, 0);
+        const necessityData = Object.entries(necessityMap).map(([name, amount]) => ({
+            name: name.charAt(0).toUpperCase() + name.slice(1),
+            amount,
+            percentage: totalNecessityExpense > 0 ? (amount / totalNecessityExpense) * 100 : 0,
+            color: name === 'necessary' ? '#10b981' : name === 'unnecessary' ? '#ef4444' : '#94a3b8'
+        })).sort((a, b) => b.amount - a.amount);
+
         return {
             sortedCategories,
             totalExpense,
@@ -212,7 +237,9 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
             yearlyData,
             maxWeekly,
             maxMonthly,
-            maxYearly
+            maxYearly,
+            necessityData,
+            totalNecessityExpense
         };
     }, [expenses]);
 
@@ -223,68 +250,6 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
             animate="visible"
             className="space-y-8"
         >
-            {/* Top Row: Streaks & Quick Insights */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <motion.div variants={itemVariants}>
-                    <Card className="bg-blue-500 text-white border-none shadow-xl relative overflow-hidden group h-full">
-                        <motion.div
-                            initial={{ rotate: 0 }}
-                            whileHover={{ rotate: 12, scale: 1.1 }}
-                            className="absolute -right-4 -bottom-4 opacity-20 pointer-events-none"
-                        >
-                            <Flame className="h-32 w-32" />
-                        </motion.div>
-                        <CardContent className="p-4 sm:p-6 relative z-10">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Badge className="bg-white/20 border-none text-white">Daily Streak</Badge>
-                            </div>
-                            <h3 className="text-3xl sm:text-4xl font-black">{stats.currentStreak} Days</h3>
-                            <p className="text-white/70 text-xs sm:text-sm mt-1 font-medium italic">You're on fire! Keep tracking daily.</p>
-                        </CardContent>
-                    </Card>
-                </motion.div>
-
-                <motion.div variants={itemVariants}>
-                    <Card className="bg-indigo-600 text-white border-none shadow-xl relative overflow-hidden group h-full">
-                        <motion.div
-                            initial={{ rotate: 0 }}
-                            whileHover={{ rotate: 12, scale: 1.1 }}
-                            className="absolute -right-4 -bottom-4 opacity-20 pointer-events-none"
-                        >
-                            <Trophy className="h-32 w-32" />
-                        </motion.div>
-                        <CardContent className="p-4 sm:p-6 relative z-10">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Badge className="bg-white/20 border-none text-white">All Time Best</Badge>
-                            </div>
-                            <h3 className="text-3xl sm:text-4xl font-black">{stats.longestStreak} Days</h3>
-                            <p className="text-white/70 text-xs sm:text-sm mt-1 font-medium italic">Your record for consistent logging.</p>
-                        </CardContent>
-                    </Card>
-                </motion.div>
-
-                <motion.div variants={itemVariants}>
-                    <Card className="bg-emerald-600 text-white border-none shadow-xl relative overflow-hidden group h-full">
-                        <motion.div
-                            initial={{ rotate: 0 }}
-                            whileHover={{ rotate: 12, scale: 1.1 }}
-                            className="absolute -right-4 -bottom-4 opacity-20 pointer-events-none"
-                        >
-                            <Target className="h-32 w-32" />
-                        </motion.div>
-                        <CardContent className="p-4 sm:p-6 relative z-10">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Badge className="bg-white/20 border-none text-white">Reliability Score</Badge>
-                            </div>
-                            <h3 className="text-3xl sm:text-4xl font-black">
-                                {expenses.length > 0 ? Math.min(100, Math.round((stats.currentStreak / 30) * 100)) : 0}%
-                            </h3>
-                            <p className="text-white/70 text-xs sm:text-sm mt-1 font-medium italic">Consistency over the last 30 days.</p>
-                        </CardContent>
-                    </Card>
-                </motion.div>
-            </div>
-
             {/* AI Insights Section */}
             <motion.div variants={itemVariants}>
                 <AIInsights
@@ -412,6 +377,106 @@ export function StatisticsContent({ expenses, categories, currencySymbol = "$" }
                                         </motion.div>
                                     </AnimatePresence>
                                 </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </motion.div>
+
+            <motion.div variants={itemVariants}>
+                <Card className="border-none shadow-sm dark:bg-white/5 overflow-hidden">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <PieChart className="h-5 w-5 text-primary" />
+                            Necessity Analysis
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                            {/* SVG Pie Chart */}
+                            <div className="flex justify-center items-center py-4">
+                                <div className="relative h-64 w-64 flex items-center justify-center">
+                                    <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+                                        <circle
+                                            cx="50"
+                                            cy="50"
+                                            r="40"
+                                            fill="transparent"
+                                            stroke="currentColor"
+                                            strokeWidth="12"
+                                            className="text-gray-100 dark:text-white/5"
+                                        />
+                                        {/* Since it's a multi-segment pie chart, we need to stack them carefully or use stroke-dasharray/offset logic for each */}
+                                        {(() => {
+                                            let cumulativeOffset = 0;
+                                            return stats.necessityData.map((item, idx) => {
+                                                const strokeDasharray = 251.32;
+                                                const segmentLength = (strokeDasharray * item.percentage) / 100;
+                                                const strokeDashoffset = strokeDasharray - segmentLength;
+                                                const offset = (strokeDasharray * cumulativeOffset) / 100;
+                                                cumulativeOffset += item.percentage;
+
+                                                return (
+                                                    <motion.circle
+                                                        key={item.name}
+                                                        cx="50"
+                                                        cy="50"
+                                                        r="40"
+                                                        fill="transparent"
+                                                        stroke={item.color}
+                                                        strokeWidth="12"
+                                                        strokeDasharray={`${segmentLength} ${strokeDasharray - segmentLength}`}
+                                                        strokeDashoffset={-offset}
+                                                        strokeLinecap="round"
+                                                        initial={{ opacity: 0, scale: 0.8 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        transition={{ duration: 1, delay: idx * 0.2 }}
+                                                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                                                    />
+                                                );
+                                            });
+                                        })()}
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Total</span>
+                                        <span className="text-2xl font-black">{currencySymbol}{stats.totalNecessityExpense.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Legend */}
+                            <div className="space-y-6">
+                                {stats.necessityData.map((item, i) => (
+                                    <div key={item.name} className="flex items-center justify-between group">
+                                        <div className="flex items-center gap-4">
+                                            <div
+                                                className="h-10 w-10 rounded-2xl flex items-center justify-center shrink-0"
+                                                style={{ backgroundColor: `${item.color}20`, color: item.color }}
+                                            >
+                                                {item.name === 'Necessary' && <ShieldCheck className="h-5 w-5" />}
+                                                {item.name === 'Unnecessary' && <Gem className="h-5 w-5" />}
+                                                {item.name === 'Neutral' && <Scale className="h-5 w-5" />}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">
+                                                    {item.name}
+                                                </span>
+                                                <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-tighter">
+                                                    {item.percentage.toFixed(1)}% of spending
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-black text-lg">{currencySymbol}{item.amount.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {stats.totalNecessityExpense === 0 && (
+                                    <p className="text-center text-xs italic text-muted-foreground py-8">
+                                        No necessity data available yet.
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </CardContent>
