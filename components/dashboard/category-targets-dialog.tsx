@@ -9,7 +9,7 @@ import {
     DialogTrigger
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Target, Loader2, Save, AlertTriangle, PieChart } from "lucide-react";
+import { Target, Loader2, Save, AlertTriangle, PieChart, CheckCircle2, ChevronRight, TrendingUp } from "lucide-react";
 import { updateCategoryTarget, getMonthlyCategorySpending } from "@/app/actions/finance";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -102,14 +102,20 @@ export function CategoryTargetsDialog({
     const isOver = target > 0 && spent > target;
     const percentage = target > 0 ? (spent / target) * 100 : 0;
 
-    // Pie Chart Components
-    // We'll create a simple donut/pie chart using conic-gradient
-    const pieGradient = isOver
-        ? `conic-gradient(#ef4444 0% 100%)` // All red if over
-        : `conic-gradient(var(--primary) 0% ${percentage}%, #e5e7eb ${percentage}% 100%)`; // Primary vs Gray
+    // Filter categories that have active targets
+    const activeTargets = expenseCategories.filter(c => (targets[c.id] || 0) > 0);
+    // Sort by percentage spent (highest first)
+    activeTargets.sort((a, b) => {
+        const spentA = spendingMap[a.id] || 0;
+        const targetA = targets[a.id] || 1;
+        const pctA = spentA / targetA;
 
-    // For dark mode adjustment, we can use a class or style approach, but conic-gradient uses colors directly.
-    // Let's use CSS variables if possible or static colors for simplicity, respecting the theme classes effectively.
+        const spentB = spendingMap[b.id] || 0;
+        const targetB = targets[b.id] || 1;
+        const pctB = spentB / targetB;
+
+        return pctB - pctA;
+    });
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -119,137 +125,196 @@ export function CategoryTargetsDialog({
                     <span className="hidden sm:inline-block">Targets</span>
                 </button>
             </DialogTrigger>
-            <DialogContent className="w-[95%] sm:max-w-md rounded-[2rem] flex flex-col p-6 gap-6 bg-white dark:bg-neutral-950 border-white/20 dark:border-white/10 shadow-2xl">
+            <DialogContent className="w-[95%] sm:max-w-4xl rounded-[2rem] flex flex-col md:flex-row p-0 gap-0 overflow-hidden bg-gray-50 dark:bg-neutral-950 border-white/20 dark:border-white/10 shadow-2xl max-h-[85vh]">
 
-                <div className="flex items-center justify-between">
+                {/* Left Side (or Top on mobile): Input Form */}
+                <div className="w-full md:w-1/3 bg-white dark:bg-black/40 p-6 flex flex-col gap-6 border-b md:border-b-0 md:border-r border-gray-100 dark:border-white/5 z-10 shrink-0">
                     <div>
                         <DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
                             <Target className="h-5 w-5 text-primary" />
                             Set Target
                         </DialogTitle>
                         <p className="text-xs text-muted-foreground font-medium mt-1">
-                            Set limits per category to track spending.
+                            Choose a category and set your monthly limit.
                         </p>
                     </div>
-                    {loadingStats && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                </div>
 
-                <div className="space-y-4">
-                    {/* Category Selection */}
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Category</label>
-                        <SearchableSelect
-                            options={expenseCategories}
-                            value={selectedCategoryId}
-                            onValueChange={setSelectedCategoryId}
-                            placeholder="Select category..."
-                        />
-                    </div>
-
-                    {/* Amount Input */}
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Target Amount</label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">{currencySymbol}</span>
-                            <input
-                                type="number"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                className="w-full h-12 pl-8 pr-4 bg-gray-100 dark:bg-white/5 disabled:opacity-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-primary font-bold text-lg"
-                                placeholder="0.00"
-                                disabled={!selectedCategoryId}
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Category</label>
+                            <SearchableSelect
+                                options={expenseCategories}
+                                value={selectedCategoryId}
+                                onValueChange={setSelectedCategoryId}
+                                placeholder="Select category..."
                             />
                         </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Limit Amount</label>
+                            <div className="relative group">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold group-focus-within:text-primary transition-colors">{currencySymbol}</span>
+                                <input
+                                    type="number"
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    className="w-full h-12 pl-8 pr-4 bg-gray-100 dark:bg-white/5 disabled:opacity-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-primary font-bold text-lg transition-all"
+                                    placeholder="0.00"
+                                    disabled={!selectedCategoryId}
+                                />
+                            </div>
+                        </div>
+
+                        <Button
+                            onClick={handleSave}
+                            disabled={!selectedCategoryId || saving}
+                            className="w-full h-12 rounded-2xl text-base font-bold shadow-lg shadow-primary/20"
+                        >
+                            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                            Save Goal
+                        </Button>
                     </div>
 
-                    <Button
-                        onClick={handleSave}
-                        disabled={!selectedCategoryId || saving}
-                        className="w-full h-12 rounded-2xl text-base font-bold"
-                    >
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                        Save Target
-                    </Button>
-                </div>
-
-                {/* Visualization / Pie Chart */}
-                <AnimatePresence mode="wait">
-                    {selectedCategoryId && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="bg-gray-50 dark:bg-white/5 rounded-[1.5rem] p-6 flex flex-col items-center gap-4 border border-gray-100 dark:border-white/5 relative overflow-hidden"
-                        >
-                            <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground self-start w-full border-b border-dashed border-gray-200 dark:border-white/10 pb-2 mb-2 flex justify-between items-center">
-                                <span>Spending Analysis</span>
-                                {isOver && <span className="text-red-500 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Over Budget</span>}
-                            </h4>
-
-                            <div className="relative h-40 w-40">
-                                {/* Pie Chart Visualization using SVG for smoother animation */}
-                                <svg viewBox="0 0 100 100" className="h-full w-full rotate-[-90deg]">
-                                    {/* Background Circle */}
-                                    <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="10" className="text-gray-200 dark:text-white/10" />
-
-                                    {/* Progress Circle */}
-                                    {target > 0 && (
-                                        <motion.circle
-                                            cx="50"
-                                            cy="50"
-                                            r="45"
-                                            fill="none"
-                                            stroke={isOver ? "#ef4444" : "currentColor"}
-                                            strokeWidth="10"
-                                            strokeLinecap="round"
-                                            className={cn("text-primary", isOver && "text-red-500")}
-                                            strokeDasharray={283} // 2 * PI * 45
-                                            strokeDashoffset={283 - (Math.min(percentage, 100) / 100) * 283}
-                                            initial={{ strokeDashoffset: 283 }}
-                                            animate={{ strokeDashoffset: 283 - (Math.min(percentage, 100) / 100) * 283 }}
-                                            transition={{ duration: 1, ease: "easeOut" }}
-                                        />
-                                    )}
-                                </svg>
-
-                                {/* Center Text */}
-                                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
-                                        {isOver ? "Over" : "Left"}
-                                    </span>
-                                    <span className={cn(
-                                        "text-xl font-black tracking-tighter",
-                                        isOver ? "text-red-500" : "text-foreground"
-                                    )}>
-                                        {currencySymbol}{isOver ? (spent - target).toFixed(0) : remaining.toFixed(0)}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 w-full text-center">
-                                <div className="bg-white dark:bg-black/20 rounded-xl p-2 border border-gray-100 dark:border-white/5">
-                                    <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Budget</div>
-                                    <div className="font-bold text-sm">{currencySymbol}{target.toLocaleString()}</div>
-                                </div>
-                                <div className="bg-white dark:bg-black/20 rounded-xl p-2 border border-gray-100 dark:border-white/5">
-                                    <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Spent</div>
-                                    <div className={cn("font-bold text-sm", isOver ? "text-red-500" : "text-primary")}>
-                                        {currencySymbol}{spent.toLocaleString()}
+                    {/* Donut Chart Visualization (Only visible when category selected) */}
+                    <AnimatePresence mode="wait">
+                        {selectedCategoryId && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 20 }}
+                                className="mt-auto pt-6 flex flex-col items-center"
+                            >
+                                <div className="relative h-32 w-32 mb-4">
+                                    <svg viewBox="0 0 100 100" className="h-full w-full rotate-[-90deg]">
+                                        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-gray-100 dark:text-white/5" />
+                                        {target > 0 && (
+                                            <motion.circle
+                                                cx="50"
+                                                cy="50"
+                                                r="45"
+                                                fill="none"
+                                                stroke={isOver ? "#ef4444" : "currentColor"}
+                                                strokeWidth="8"
+                                                strokeLinecap="round"
+                                                className={cn("text-primary transition-colors duration-500", isOver && "text-red-500")}
+                                                strokeDasharray={283}
+                                                strokeDashoffset={283 - (Math.min(percentage, 100) / 100) * 283}
+                                                initial={{ strokeDashoffset: 283 }}
+                                                animate={{ strokeDashoffset: 283 - (Math.min(percentage, 100) / 100) * 283 }}
+                                                transition={{ duration: 1.5, ease: "easeOut" }}
+                                            />
+                                        )}
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                        <span className={cn("text-xs font-black uppercase tracking-tighter opacity-50", isOver && "text-red-500")}>
+                                            {percentage.toFixed(0)}%
+                                        </span>
                                     </div>
                                 </div>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                                <div className="w-full flex justify-between text-xs font-medium px-2">
+                                    <span className={cn(isOver ? "text-red-500 font-bold" : "text-muted-foreground")}>
+                                        {currencySymbol}{spent.toLocaleString()}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                        / {currencySymbol}{target.toLocaleString()}
+                                    </span>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
 
-                {!selectedCategoryId && (
-                    <div className="flex flex-col items-center justify-center py-8 text-center opacity-40">
-                        <PieChart className="h-12 w-12 text-muted-foreground mb-3" />
-                        <p className="text-xs font-medium max-w-[200px]">
-                            Select a category to view spending breakdown and set targets.
-                        </p>
+                {/* Right Side (or Bottom): Active Goals List */}
+                <div className="flex-1 flex flex-col min-h-[300px] md:min-h-[400px] bg-white/50 dark:bg-black/20">
+                    <div className="p-6 pb-2 shrink-0 flex items-center justify-between">
+                        <h3 className="font-black text-lg flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5 text-orange-500" />
+                            Active Goals
+                            <span className="bg-gray-100 dark:bg-white/10 text-xs px-2 py-0.5 rounded-full text-foreground/70">
+                                {activeTargets.length}
+                            </span>
+                        </h3>
                     </div>
-                )}
+
+                    <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-3 custom-scrollbar">
+                        {loadingStats && activeTargets.length === 0 ? (
+                            <div className="flex items-center justify-center h-40">
+                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : activeTargets.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-center p-8 opacity-40">
+                                <div className="bg-gray-200 dark:bg-white/5 p-4 rounded-full mb-4">
+                                    <Target className="h-8 w-8 text-gray-400" />
+                                </div>
+                                <p className="font-bold text-sm">No goals set yet</p>
+                                <p className="text-xs max-w-[200px] mt-1">Select a category on the left to start tracking your budget.</p>
+                            </div>
+                        ) : (
+                            activeTargets.map((item) => {
+                                const itemSpent = spendingMap[item.id] || 0;
+                                const itemTarget = targets[item.id] || 0;
+                                const itemPct = (itemSpent / itemTarget) * 100;
+                                const itemIsOver = itemPct > 100;
+                                const isSelected = selectedCategoryId === item.id;
+
+                                return (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => {
+                                            setSelectedCategoryId(item.id);
+                                            setAmount(itemTarget.toString());
+                                        }}
+                                        className={cn(
+                                            "w-full text-left group flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 relative overflow-hidden",
+                                            isSelected
+                                                ? "bg-white dark:bg-white/5 border-primary ring-1 ring-primary shadow-lg"
+                                                : "bg-white dark:bg-white/5 border-transparent hover:border-gray-200 dark:hover:border-white/10 hover:shadow-md"
+                                        )}
+                                    >
+                                        <div
+                                            className="h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm shrink-0 transition-transform group-hover:scale-110"
+                                            style={{ backgroundColor: item.color + '20', color: item.color }}
+                                        >
+                                            {/* Using emoji or first char if no icon system */}
+                                            {item.name[0]}
+                                        </div>
+
+                                        <div className="flex-1 min-w-0 z-10">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <h4 className="font-bold text-sm truncate">{item.name}</h4>
+                                                <div className="text-xs font-medium tabular-nums">
+                                                    <span className={cn(itemIsOver ? "text-red-500 font-bold" : "text-gray-500")}>
+                                                        {currencySymbol}{itemSpent.toLocaleString()}
+                                                    </span>
+                                                    <span className="text-gray-300 mx-1">/</span>
+                                                    <span className="text-gray-400">{currencySymbol}{itemTarget.toLocaleString()}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Progress Bar */}
+                                            <div className="h-2 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                                <motion.div
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${Math.min(itemPct, 100)}%` }}
+                                                    className={cn(
+                                                        "h-full rounded-full transition-all duration-500",
+                                                        itemIsOver ? "bg-red-500" : "bg-primary"
+                                                    )}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {isSelected && (
+                                            <div className="absolute right-0 top-0 bottom-0 w-1 bg-primary" />
+                                        )}
+                                    </button>
+                                );
+                            })
+                        )}
+
+                        <div className="h-4" /> {/* Spacer */}
+                    </div>
+                </div>
 
             </DialogContent>
         </Dialog>
