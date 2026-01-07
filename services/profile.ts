@@ -21,17 +21,17 @@ export async function getProfile() {
 
     if (data) {
         if (data.zakat_target != null) {
-            data.zakat_target = decryptNumber(data.zakat_target, session.vaultKey);
+            data.zakat_target = decryptNumber(data.zakat_target);
         }
 
         if (data.zakat_breakdown) {
             let breakdown = data.zakat_breakdown;
             try {
                 if (typeof breakdown === 'object' && 'encrypted' in breakdown) {
-                    const decryptedValue = decrypt(breakdown.encrypted, session.vaultKey);
+                    const decryptedValue = decrypt(breakdown.encrypted);
                     data.zakat_breakdown = JSON.parse(decryptedValue);
                 } else if (typeof breakdown === 'string') {
-                    const decryptedValue = decrypt(breakdown, session.vaultKey);
+                    const decryptedValue = decrypt(breakdown);
                     data.zakat_breakdown = JSON.parse(decryptedValue);
                 }
             } catch (e) {

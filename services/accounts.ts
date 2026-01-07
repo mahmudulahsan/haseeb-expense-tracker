@@ -39,14 +39,10 @@ export async function getAccountTransactions(accountId: string) {
         throw new Error("Failed to fetch transactions");
     }
 
-    const session = await getSession();
-    if (!session) throw new Error("Unauthorized");
-    const vaultKey = session.vaultKey;
-
     // Decrypt sensitive fields
     return data.map((expense: any) => ({
         ...expense,
-        description: expense.description ? decrypt(expense.description, vaultKey) : expense.description,
-        amount: decryptNumber(expense.amount, vaultKey)
+        description: expense.description ? decrypt(expense.description) : expense.description,
+        amount: decryptNumber(expense.amount)
     }));
 }
