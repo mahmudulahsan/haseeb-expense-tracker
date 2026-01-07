@@ -59,7 +59,7 @@ export function Logo({ className, iconClassName, showText = false, size = "md" }
                         cx="12"
                         cy="12"
                         r="4.5"
-                        fill="#f97316"
+                        fill="#2563EB"
                         stroke="currentColor"
                         strokeWidth="1.2"
                     />

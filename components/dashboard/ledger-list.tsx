@@ -80,21 +80,25 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                             </span>
                         </div>
                         <div className="flex items-center gap-1.5 sm:gap-2">
+                            {selectedIds.length < expenses.length && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setSelectedIds(expenses.map(e => e.id))}
+                                    className="h-8 px-2 sm:px-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-primary/5 hover:text-primary transition-all hidden sm:flex"
+                                >
+                                    <Check className="h-3 w-3 sm:mr-1" />
+                                    <span className="hidden sm:inline">Select All</span>
+                                </Button>
+                            )}
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => {
-                                    const allIds = expenses.map(e => e.id);
-                                    setSelectedIds(allIds.length === selectedIds.length ? [] : allIds);
-                                }}
+                                onClick={() => setSelectedIds([])}
                                 className="h-8 px-2 sm:px-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-primary/5 hover:text-primary transition-all"
                             >
-                                {selectedIds.length === expenses.length ? (
-                                    <span className="flex items-center gap-1"><X className="h-3 w-3" /> <span className="hidden sm:inline">None</span></span>
-                                ) : (
-                                    <span className="flex items-center gap-1"><Check className="h-3 w-3" /> <span className="hidden sm:inline">All</span></span>
-                                )}
-                                <span className="sm:inline ml-1">{selectedIds.length === expenses.length ? "Deselect" : "Select"}</span>
+                                <X className="h-3 w-3 sm:mr-1" />
+                                <span className="hidden sm:inline">Clear All</span>
                             </Button>
                             <Button
                                 variant="destructive"
