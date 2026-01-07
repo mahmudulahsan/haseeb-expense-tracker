@@ -38,12 +38,14 @@ export function ProfileButton({ initialName, initialCurrency, email }: ProfileBu
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [success, setSuccess] = useState<string | null>(null);
     const router = useRouter();
 
     async function handleProfileUpdate(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        setSuccess(null);
         const formData = new FormData(e.currentTarget);
         const result = await updateProfile(formData);
 
@@ -60,12 +62,14 @@ export function ProfileButton({ initialName, initialCurrency, email }: ProfileBu
         e.preventDefault();
         setLoading(true);
         setError(null);
+        setSuccess(null);
         const formData = new FormData(e.currentTarget);
         const result = await changePassword(formData);
 
         if (result.success) {
-            alert("Password updated successfully!");
-            setOpen(false);
+            setSuccess("Password updated successfully!");
+            // Optional: Close after a delay or let user close
+            // setOpen(false); 
         } else {
             setError(result.error || "Failed to update password");
         }
@@ -85,7 +89,7 @@ export function ProfileButton({ initialName, initialCurrency, email }: ProfileBu
     }
 
     return (
-        <Dialog open={open} onOpenChange={(val) => { setOpen(val); setError(null); }}>
+        <Dialog open={open} onOpenChange={(val) => { setOpen(val); setError(null); setSuccess(null); }}>
             <DialogTrigger asChild>
                 <div className="h-10 w-10 rounded-full border-2 border-primary/20 p-0.5 overflow-hidden cursor-pointer hover:border-primary/50 transition-colors">
                     <div className="h-full w-full rounded-full bg-gray-200 dark:bg-white/10 flex items-center justify-center">
@@ -112,6 +116,11 @@ export function ProfileButton({ initialName, initialCurrency, email }: ProfileBu
                         {error && (
                             <div className="mb-6 rounded-xl bg-red-500/10 p-3 text-sm font-bold text-red-500 border border-red-500/20 animate-in shake-in">
                                 {error}
+                            </div>
+                        )}
+                        {success && (
+                            <div className="mb-6 rounded-xl bg-emerald-500/10 p-3 text-sm font-bold text-emerald-500 border border-emerald-500/20 animate-in slide-in-from-top-2">
+                                {success}
                             </div>
                         )}
 

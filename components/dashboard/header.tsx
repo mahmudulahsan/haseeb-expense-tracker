@@ -16,9 +16,10 @@ interface HeaderProps {
     userEmail: string;
     profileName?: string;
     profileCurrency?: string;
+    categories?: any[];
 }
 
-export function Header({ userEmail, profileName, profileCurrency }: HeaderProps) {
+export function Header({ userEmail, profileName, profileCurrency, categories = [] }: HeaderProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
@@ -34,7 +35,7 @@ export function Header({ userEmail, profileName, profileCurrency }: HeaderProps)
                             <Logo showText size="md" className="scale-90 sm:scale-100 origin-left" />
                         </Link>
                         <div className="hidden md:block">
-                            <Navbar />
+                            <Navbar categories={categories} />
                         </div>
                     </div>
 
@@ -72,7 +73,7 @@ export function Header({ userEmail, profileName, profileCurrency }: HeaderProps)
                             <div className="flex flex-col gap-4 px-2">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Navigation</span>
-                                    <Navbar />
+                                    <Navbar categories={categories} />
                                 </div>
 
                                 <div className="flex items-center justify-between">

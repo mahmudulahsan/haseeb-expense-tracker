@@ -800,3 +800,64 @@ export async function generateInsights(expenses: any[], categories: any[], curre
         return { error: error.message || "Failed to generate insights" };
     }
 }
+
+export async function updateCategoryTarget(categoryId: string, target: number) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+        .from("category_targets")
+        .upsert({
+            user_id: session.user.id,
+            category_id: categoryId,
+            target: target,
+            updated_at: new Date().toISOString()
+        }, {
+            onConflict: 'user_id,category_id'
+        });
+
+    if (error) {
+        console.error("Update category target error:", error);
+        return { error: `Failed to update target: ${error.message}` };
+    }
+
+    revalidatePath("/");
+    return { success: true };
+}
+
+export async function getMonthlyCategorySpending() {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+    const { data: expenses, error } = await supabase
+        .from("expenses")
+        .select("amount, category_id")
+        .eq("user_id", session.user.id)
+        .eq("type", "expense")
+        .gte("date", startOfMonth)
+        .lte("date", endOfMonth);
+
+    if (error) {
+        console.error("Fetch monthly spending error:", error);
+        return { error: "Failed to fetch spending" };
+    }
+
+    const spending: Record<string, number> = {};
+
+    // Decrypt and aggregate
+    expenses.forEach((ex: any) => {
+        const amount = Number(decrypt(ex.amount));
+        if (ex.category_id) {
+            spending[ex.category_id] = (spending[ex.category_id] || 0) + amount;
+        }
+    });
+
+    return { success: true, spending };
+}

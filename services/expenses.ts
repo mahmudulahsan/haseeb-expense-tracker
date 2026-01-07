@@ -41,8 +41,8 @@ export async function getCategories() {
 
     const supabase = createAdminClient();
 
-    // Fetch public categories (user_id is null) AND user-specific categories
-    const { data, error } = await supabase
+    // 1. Fetch categories
+    const { data: categories, error } = await supabase
         .from("categories")
         .select("*")
         .or(`user_id.is.null,user_id.eq.${session.user.id}`)
@@ -53,5 +53,21 @@ export async function getCategories() {
         return [];
     }
 
-    return data;
+    // 2. Fetch user targets
+    const { data: targets } = await supabase
+        .from("category_targets")
+        .select("category_id, target")
+        .eq("user_id", session.user.id);
+
+    // 3. Merge targets into categories
+    const categoriesWithTargets = categories.map((cat: any) => {
+        const targetObj = targets?.find((t: any) => t.category_id === cat.id);
+        return {
+            ...cat,
+            monthly_target: targetObj ? Number(targetObj.target) : 0
+        };
+    });
+
+    return categoriesWithTargets;
 }
+
