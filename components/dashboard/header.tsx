@@ -35,7 +35,7 @@ export function Header({ userEmail, profileName, profileCurrency, categories = [
                             <Logo showText size="md" className="scale-90 sm:scale-100 origin-left" />
                         </Link>
                         <div className="hidden md:block">
-                            <Navbar categories={categories} />
+                            <Navbar categories={categories} currency={profileCurrency} />
                         </div>
                     </div>
 
@@ -73,7 +73,7 @@ export function Header({ userEmail, profileName, profileCurrency, categories = [
                             <div className="flex flex-col gap-4 px-2">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Navigation</span>
-                                    <Navbar categories={categories} />
+                                    <Navbar categories={categories} currency={profileCurrency} />
                                 </div>
 
                                 <div className="flex items-center justify-between">

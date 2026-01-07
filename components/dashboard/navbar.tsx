@@ -10,9 +10,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-import { CategoryTargetsDialog } from "@/components/dashboard/category-targets-dialog";
-import { getCurrencySymbol } from "@/lib/utils";
-
 const navItems = [
     { icon: LayoutDashboard, label: "Home", tab: "home" },
     { icon: BarChart3, label: "Statistic", tab: "statistic" },
@@ -21,9 +18,10 @@ const navItems = [
 
 interface NavbarProps {
     categories?: any[];
+    currency?: string;
 }
 
-export function Navbar({ categories = [] }: NavbarProps) {
+export function Navbar({ categories = [], currency = "USD" }: NavbarProps) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const activeTab = searchParams.get("tab") || "home";
@@ -56,10 +54,6 @@ export function Navbar({ categories = [] }: NavbarProps) {
                     </button>
                 );
             })}
-
-            <div className="w-px h-6 bg-gray-200 dark:bg-white/10 mx-1" />
-
-            <CategoryTargetsDialog categories={categories} />
         </div>
     );
 }

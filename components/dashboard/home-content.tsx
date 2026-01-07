@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 import { StatCard } from "@/components/dashboard/stat-card";
+import { BudgetSummaryCard } from "@/components/dashboard/budget-summary-card";
 import { AddTransactionDialog } from "@/components/dashboard/add-transaction-dialog";
 import { MainBalance } from "@/components/dashboard/main-balance";
 import { DynamicIcon } from "@/components/ui/dynamic-icon";
@@ -33,7 +34,8 @@ import {
     Maximize2,
     Download,
     Eye,
-    EyeOff
+    EyeOff,
+    Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LedgerList } from "@/components/dashboard/ledger-list";
@@ -282,6 +284,29 @@ export function HomeContent({
         }, 0);
     }, [accountDetailedExpenses]);
 
+    const monthlySummaryData = useMemo(() => {
+        const monthExpenses = expenses.filter(e => {
+            const d = parseLocalDate(e.date);
+            return (d.getMonth() + 1).toString().padStart(2, '0') === filterMonth &&
+                d.getFullYear().toString() === filterYear;
+        });
+
+        const income = monthExpenses.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
+        const spent = monthExpenses.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
+
+        const categoriesWithMonthlySpent = categories.map(cat => {
+            const spentInCat = monthExpenses
+                .filter(e => e.type === 'expense' && e.category_id === cat.id)
+                .reduce((s, e) => s + e.amount, 0);
+            return {
+                ...cat,
+                spent: spentInCat
+            };
+        });
+
+        return { income, spent, categories: categoriesWithMonthlySpent };
+    }, [expenses, categories, filterMonth, filterYear]);
+
 
 
     return (
@@ -316,25 +341,14 @@ export function HomeContent({
                 </div>
 
                 {/* Vertical Secondary Stats */}
-                <div className="lg:col-span-4 flex flex-col gap-6">
-                    <div>
-                        <StatCard
-                            title="Monthly Income"
-                            value={`${currencySymbol}${totalIncome.toLocaleString()}`}
-                            change={`Income in ${MONTHS[parseInt(filterMonth) - 1]}`}
-                            icon={ArrowUpRight}
-                            color="bg-emerald-500 text-white"
-                        />
-                    </div>
-                    <div>
-                        <StatCard
-                            title="Monthly Expense"
-                            value={`${currencySymbol}${totalSpent.toLocaleString()}`}
-                            change={`Spent in ${MONTHS[parseInt(filterMonth) - 1]}`}
-                            icon={ArrowDownRight}
-                            color="bg-red-500 text-white"
-                        />
-                    </div>
+                <div className="lg:col-span-4">
+                    <BudgetSummaryCard
+                        income={monthlySummaryData.income}
+                        spent={monthlySummaryData.spent}
+                        categories={monthlySummaryData.categories}
+                        month={MONTHS[parseInt(filterMonth) - 1]}
+                        currencySymbol={currencySymbol}
+                    />
                 </div>
             </div>
 
@@ -846,6 +860,20 @@ export function HomeContent({
                     </Dialog>
                 )}
             </AnimatePresence>
+
+            {/* Mobile Floating Action Button */}
+            <div className="fixed bottom-8 right-6 z-[40] sm:hidden">
+                <motion.button
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setIsAddDialogOpen(true)}
+                    className="h-14 w-14 rounded-full bg-primary text-white shadow-[0_10px_40px_rgba(var(--primary-rgb),0.3)] flex items-center justify-center border-2 border-white/20 dark:border-white/10"
+                >
+                    <Plus className="h-6 w-6" />
+                </motion.button>
+            </div>
         </div>
     );
 }

@@ -79,7 +79,7 @@ export function SearchableSelect({
                         animate={{ opacity: 1, y: 4, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.1, ease: "easeOut" }}
-                        className="absolute z-[100] w-full mt-1 bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl"
+                        className="absolute z-[100] w-full mt-3 bg-white dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden"
                     >
                         <div className="p-2 border-b border-black/5 dark:border-white/5 flex items-center gap-2">
                             <Search className="h-4 w-4 opacity-40 ml-2" />
@@ -108,7 +108,7 @@ export function SearchableSelect({
                             )}
                         </div>
 
-                        <div className="max-h-[240px] overflow-y-auto p-1 custom-scrollbar">
+                        <div className="max-h-[200px] overflow-y-auto p-1 custom-scrollbar">
                             {/* Create new option */}
                             {onCreate && search.trim() && !exactMatch && (
                                 <button

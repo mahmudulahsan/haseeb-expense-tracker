@@ -59,8 +59,21 @@ export async function getCategories() {
         .select("category_id, target")
         .eq("user_id", session.user.id);
 
-    // 3. Merge targets into categories
-    const categoriesWithTargets = categories.map((cat: any) => {
+    // 3. Deduplicate categories by name, prioritizing user-specific ones
+    const deduplicated = categories.reduce((acc: any[], current: any) => {
+        const existing = acc.find(c => c.name.toLowerCase() === current.name.toLowerCase());
+        if (!existing) {
+            acc.push(current);
+        } else if (current.user_id !== null) {
+            // If current is user-specific, replace the null (system/default) one
+            const index = acc.indexOf(existing);
+            acc[index] = current;
+        }
+        return acc;
+    }, []);
+
+    // 4. Merge targets into categories
+    const categoriesWithTargets = deduplicated.map((cat: any) => {
         const targetObj = targets?.find((t: any) => t.category_id === cat.id);
         return {
             ...cat,
