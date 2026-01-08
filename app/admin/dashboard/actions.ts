@@ -37,6 +37,81 @@ export async function getUserTransactions(userId: string) {
     return { success: true, transactions: decryptedTransactions };
 }
 
+export async function getAdminTransactions(page: number = 1, limit: number = 10) {
+    const cookieStore = await cookies();
+    if (!cookieStore.has("admin_session")) {
+        return { error: "Unauthorized" };
+    }
+
+    const supabase = createAdminClient();
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    // Fetch transactions with pagination (without joins to avoid relationship errors)
+    const { data: transactions, count, error } = await supabase
+        .from("expenses")
+        .select("*", { count: "exact" })
+        .order("date", { ascending: false })
+        .order("time", { ascending: false })
+        .range(from, to);
+
+    if (error) {
+        console.error("Error fetching admin transactions:", error);
+        return { error: "Failed to fetch transactions" };
+    }
+
+    if (!transactions || transactions.length === 0) {
+        return {
+            success: true,
+            transactions: [],
+            totalCount: 0,
+            totalPages: 0
+        };
+    }
+
+    // Collect IDs for manual join
+    const userIds = [...new Set(transactions.map(tx => tx.user_id).filter(Boolean))];
+    const categoryIds = [...new Set(transactions.map(tx => tx.category_id).filter(Boolean))];
+    const accountIds = [...new Set([
+        ...transactions.map(tx => tx.account_id),
+        ...transactions.map(tx => tx.to_account_id)
+    ].filter(Boolean))];
+
+    // Fetch related data in parallel
+    const [profilesResult, categoriesResult, accountsResult] = await Promise.all([
+        supabase.from("profiles").select("id, email, display_name").in("id", userIds),
+        supabase.from("categories").select("id, name, icon, color").in("id", categoryIds),
+        supabase.from("accounts").select("id, name").in("id", accountIds)
+    ]);
+
+    const profileMap = new Map((profilesResult.data || []).map(p => [p.id, p]));
+    const categoryMap = new Map((categoriesResult.data || []).map(c => [c.id, c]));
+    const accountMap = new Map((accountsResult.data || []).map(a => [a.id, a]));
+
+    // Decrypt and format
+    const formattedTransactions = transactions.map(tx => {
+        const profile = profileMap.get(tx.user_id);
+        const category = categoryMap.get(tx.category_id);
+        const account = accountMap.get(tx.account_id);
+
+        return {
+            ...tx,
+            amount: tx.amount ? Number(decrypt(tx.amount)) : 0,
+            description: tx.description ? decrypt(tx.description) : "",
+            user: profile ? { email: profile.email, name: profile.display_name } : null,
+            categories: category || null,
+            accounts: account || null
+        };
+    });
+
+    return {
+        success: true,
+        transactions: formattedTransactions,
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+    };
+}
+
 export async function deleteUserTransaction(transactionId: string, userId: string) {
     const cookieStore = await cookies();
     if (!cookieStore.has("admin_session")) {

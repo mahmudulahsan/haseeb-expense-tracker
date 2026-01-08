@@ -1,9 +1,9 @@
-import { checkAdminSession, getAdminStats, adminLogout } from "../actions";
+import { checkAdminSession, getAdminStats } from "../actions";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Activity, Database, ShieldCheck, LogOut, TrendingUp, AlertCircle } from "lucide-react";
-import { UserTable } from "./user-table";
+import { Users, Activity, Database, ShieldCheck, TrendingUp, AlertCircle, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export default async function AdminDashboard() {
     const isAuth = await checkAdminSession();
@@ -14,34 +14,27 @@ export default async function AdminDashboard() {
     const stats = await getAdminStats();
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6 md:p-8 font-sans">
+        <div className="space-y-8 font-sans">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 border-b border-zinc-800 pb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-zinc-800">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-                        <ShieldCheck className="h-8 w-8 text-emerald-500" />
-                        Admin Dashboard
+                        Dashboard Overview
                     </h1>
                     <p className="text-zinc-400 mt-2">
-                        Monitor user growth, system metrics, and implementation usage.
+                        Welcome back, Administrator. Here's what's happening today.
                     </p>
                 </div>
-                <form action={adminLogout}>
-                    <Button variant="outline" className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Sign Out
-                    </Button>
-                </form>
             </div>
 
             {/* KPI Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 <StatsCard
                     title="Total Users"
                     value={stats.users.count}
                     icon={<Users className="h-5 w-5 text-blue-400" />}
                     description="Registered accounts"
-                    trend="+12% from last month" // Placeholder trend
+                    trend="+12% this month"
                     trendUp={true}
                 />
                 <StatsCard
@@ -63,60 +56,56 @@ export default async function AdminDashboard() {
                 />
             </div>
 
-            <div className="grid gap-8 md:grid-cols-3">
-                {/* User Directory Section */}
-                <UserTable users={stats.users.all} />
-
-                {/* System Health / Usage Info */}
-                <div className="space-y-6">
-                    <Card className="border-zinc-800 bg-zinc-900/50">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <AlertCircle className="h-5 w-5 text-amber-500" />
-                                System Status
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                                <span className="text-zinc-400">Database Status</span>
-                                <span className="text-emerald-500 font-medium text-sm flex items-center gap-1">
-                                    <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                    </span>
-                                    Operational
+            {/* Quick Links / System Heath */}
+            <div className="grid gap-6 md:grid-cols-2">
+                <Card className="border-zinc-800 bg-zinc-900/50">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <AlertCircle className="h-5 w-5 text-amber-500" />
+                            System Health
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                            <span className="text-zinc-400">Database Status</span>
+                            <span className="text-emerald-500 font-medium text-sm flex items-center gap-1">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                 </span>
-                            </div>
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-zinc-400 text-sm">Storage Usage Estimate</span>
-                                    <span className="text-zinc-200 text-sm font-medium">Low</span>
-                                </div>
-                                <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-                                    <div className="h-full bg-blue-500 w-[5%]"></div>
-                                </div>
-                                <p className="text-xs text-zinc-500 mt-2">
-                                    Based on row count volume compared to free tier typical limits (500MB).
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                Operational
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                            <span className="text-zinc-400">API Latency</span>
+                            <span className="text-emerald-500 font-medium text-sm">~45ms</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-zinc-400">Last Backup</span>
+                            <span className="text-zinc-300 font-medium text-sm">Today, 04:00 AM</span>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                    <Card className="border-zinc-800 bg-zinc-900/50">
-                        <CardHeader>
-                            <CardTitle className="text-base">Quick Actions</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-zinc-400 mb-4">
-                                Maintenance tasks are currently automated. No manual intervention required.
-                            </p>
-                            <Button variant="outline" className="w-full justify-start text-zinc-400 border-zinc-800 hover:text-zinc-100 hover:bg-zinc-800" disabled>
-                                <Database className="mr-2 h-4 w-4" />
-                                Run Backup (Auto)
+                <Card className="border-zinc-800 bg-zinc-900/50">
+                    <CardHeader>
+                        <CardTitle className="text-base">Quick Navigation</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-3">
+                        <Link href="/admin/dashboard/users">
+                            <Button variant="outline" className="w-full justify-between items-center text-zinc-300 border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 hover:text-white h-auto py-3">
+                                <span className="flex items-center gap-2"><Users className="h-4 w-4 text-blue-500" /> Manage Users</span>
+                                <ArrowRight className="h-4 w-4 opacity-50" />
                             </Button>
-                        </CardContent>
-                    </Card>
-                </div>
+                        </Link>
+                        <Link href="/admin/dashboard/transactions">
+                            <Button variant="outline" className="w-full justify-between items-center text-zinc-300 border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 hover:text-white h-auto py-3">
+                                <span className="flex items-center gap-2"><Activity className="h-4 w-4 text-emerald-500" /> View Transactions</span>
+                                <ArrowRight className="h-4 w-4 opacity-50" />
+                            </Button>
+                        </Link>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );

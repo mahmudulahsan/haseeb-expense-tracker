@@ -200,9 +200,6 @@ export function UserTransactionsDialog({ userId, userEmail, transactionCount }: 
                                                 <div className="flex flex-col">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-sm font-medium capitalize text-zinc-200">{tx.type}</span>
-                                                        <span className="text-xs font-mono text-zinc-400">
-                                                            {tx.amount > 0 ? tx.amount.toLocaleString() : '---'}
-                                                        </span>
                                                     </div>
                                                     <span className="text-xs text-zinc-500 font-mono">{tx.id.slice(0, 8)}</span>
                                                 </div>
@@ -237,7 +234,7 @@ export function UserTransactionsDialog({ userId, userEmail, transactionCount }: 
                         )}
                     </div>
                 </DialogContent>
-            </Dialog>
+            </Dialog >
 
             <ConfirmDialog
                 open={!!deleteId}
