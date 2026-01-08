@@ -174,12 +174,22 @@ export function AddTransactionDialog({
             }
 
             // Look for matching category
-            if (ai.category && ai.type !== "transfer") {
-                const matchCat = categories.find(c => c.name.toLowerCase() === ai.category.toLowerCase());
+            if (ai.isZakat || (ai.category && ai.type !== "transfer")) {
+                let matchCat = null;
+
+                if (ai.isZakat) {
+                    matchCat = categories.find(c => c.name.toLowerCase() === 'zakat');
+                    if (matchCat) {
+                        setNecessityLevel('necessary');
+                    }
+                } else if (ai.category) {
+                    matchCat = categories.find(c => c.name.toLowerCase() === ai.category.toLowerCase());
+                }
+
                 if (matchCat) {
                     setSelectedCategory(matchCat.id);
                     setIsCreatingCategory(false);
-                } else {
+                } else if (ai.category) {
                     // Pre-fill new category name if it doesn't exist
                     setIsCreatingCategory(true);
                     setNewCategoryName(ai.category);
@@ -529,8 +539,10 @@ export function AddTransactionDialog({
                                             if (zakatCat) {
                                                 if (selectedCategory === zakatCat.id) {
                                                     setSelectedCategory("");
+                                                    setNecessityLevel('neutral');
                                                 } else {
                                                     setSelectedCategory(zakatCat.id);
+                                                    setNecessityLevel('necessary');
                                                 }
                                             } else {
                                                 toast.error("Zakat category not found");
@@ -658,8 +670,19 @@ export function AddTransactionDialog({
                                             className={cn(
                                                 "group flex items-center px-4 py-2 rounded-full border transition-all duration-300 ease-out",
                                                 necessityLevel === item.value
-                                                    ? "bg-red-500 text-white border-red-500 shadow-md shadow-red-500/20 scale-105"
-                                                    : "bg-transparent border-gray-200 dark:border-white/10 text-muted-foreground hover:border-red-200 dark:hover:border-red-900/50 hover:bg-gray-50 dark:hover:bg-white/5"
+                                                    ? cn(
+                                                        "text-white shadow-md scale-105",
+                                                        item.value === 'necessary' && "bg-emerald-500 border-emerald-500 shadow-emerald-500/20",
+                                                        item.value === 'neutral' && "bg-blue-500 border-blue-500 shadow-blue-500/20",
+                                                        item.value === 'unnecessary' && "bg-red-500 border-red-500 shadow-red-500/20"
+                                                    )
+                                                    : "bg-transparent border-gray-200 dark:border-white/10 text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/5",
+                                                // Hovest styles based on item type
+                                                necessityLevel !== item.value && cn(
+                                                    item.value === 'necessary' && "hover:border-emerald-200 dark:hover:border-emerald-900/50",
+                                                    item.value === 'neutral' && "hover:border-blue-200 dark:hover:border-blue-900/50",
+                                                    item.value === 'unnecessary' && "hover:border-red-200 dark:hover:border-red-900/50"
+                                                )
                                             )}
                                         >
                                             <item.icon className="h-4 w-4 group-hover:scale-110 transition-transform" />

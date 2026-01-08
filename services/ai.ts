@@ -34,8 +34,10 @@ Extract the following fields in JSON format:
 - type: (string, either 'expense', 'income', or 'transfer')
 - description: (string, brief summary)
 - date: (string, YYYY-MM-DD, defaults to today ${today} if not mentioned)
+- isZakat: (boolean, set to true ONLY if the user explicitly mentions "zakat" or implies this is a zakat payment)
 
 A 'transfer' is when money moves between two accounts. Example: "Transfer 100 from Wallet to Savings" should result in type: "transfer", account: "Wallet", toAccount: "Savings", amount: 100.
+Example: "I paid 500 for zakat" -> type: "expense", category: "Zakat", isZakat: true.
 
 IMPORTANT: Output ONLY the raw JSON object. Do not include markdown code blocks or any other text.`;
 
@@ -46,7 +48,7 @@ IMPORTANT: Output ONLY the raw JSON object. Do not include markdown code blocks 
             "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
-            model: "glm-4.7",
+            model: "glm-4.6",
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: text }
