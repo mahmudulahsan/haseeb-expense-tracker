@@ -108,7 +108,7 @@ export function ProfileButton({ initialName, initialCurrency, email }: ProfileBu
                             General
                         </TabsTrigger>
                         <TabsTrigger value="security" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 font-bold text-muted-foreground data-[state=active]:text-primary transition-all">
-                            Security
+                            Change Password
                         </TabsTrigger>
                     </TabsList>
 
@@ -190,10 +190,6 @@ export function ProfileButton({ initialName, initialCurrency, email }: ProfileBu
                         </TabsContent>
 
                         <TabsContent value="security" className="mt-0 space-y-6 focus-visible:outline-none">
-                            <div className="mb-2">
-                                <h4 className="text-base font-bold">Update Password</h4>
-                                <p className="text-[11px] text-muted-foreground font-medium">Protect your dashboard with a strong password</p>
-                            </div>
                             <form onSubmit={handlePasswordChange} className="space-y-5">
                                 <div className="space-y-4">
                                     <div className="space-y-2">

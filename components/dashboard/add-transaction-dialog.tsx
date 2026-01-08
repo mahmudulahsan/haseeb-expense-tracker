@@ -522,13 +522,28 @@ export function AddTransactionDialog({
                             )}
 
                             {type === 'expense' && (
-                                <div className="flex items-center justify-between bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/20 mb-2">
+                                <div className={cn(
+                                    "flex items-center justify-between p-3 rounded-2xl border transition-colors duration-300 mb-2",
+                                    selectedCategory && categories.find(c => c.id === selectedCategory)?.name.toLowerCase() === 'zakat'
+                                        ? "bg-emerald-500/10 border-emerald-500/20"
+                                        : "bg-gray-100 dark:bg-white/5 border-transparent"
+                                )}>
                                     <div className="flex items-center gap-2">
-                                        <div className="h-8 w-8 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+                                        <div className={cn(
+                                            "h-8 w-8 rounded-full flex items-center justify-center text-white transition-colors duration-300",
+                                            selectedCategory && categories.find(c => c.id === selectedCategory)?.name.toLowerCase() === 'zakat'
+                                                ? "bg-emerald-500"
+                                                : "bg-gray-400 dark:bg-white/20"
+                                        )}>
                                             <HandHeart className="h-4 w-4" />
                                         </div>
                                         <div>
-                                            <p className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Zakat Eligible?</p>
+                                            <p className={cn(
+                                                "text-xs font-black uppercase tracking-widest transition-colors duration-300",
+                                                selectedCategory && categories.find(c => c.id === selectedCategory)?.name.toLowerCase() === 'zakat'
+                                                    ? "text-emerald-600 dark:text-emerald-400"
+                                                    : "text-muted-foreground"
+                                            )}>Zakat Eligible?</p>
                                             <p className="text-[10px] text-muted-foreground/80 font-medium">Mark this as a Zakat payment</p>
                                         </div>
                                     </div>
