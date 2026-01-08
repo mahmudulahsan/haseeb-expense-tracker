@@ -317,7 +317,7 @@ export function HomeContent({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Main Card (Primary Account) */}
                 <div className="lg:col-span-8 h-full">
-                    <Card className="bg-blue-50 dark:bg-primary/10 border-none shadow-xl overflow-hidden h-full relative group">
+                    <Card className="bg-blue-100 dark:bg-primary/20 border-none shadow-xl overflow-hidden h-full relative group">
                         <CardContent className="p-6 sm:p-10">
                             <MainBalance
                                 accounts={accounts}
