@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronDown, Search, X, Plus } from "lucide-react";
+import { Check, ChevronDown, Search, X, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface SearchableSelectProps {
-    options: { id: string; name: string }[];
+    options: { id: string; name: string; user_id?: string | null }[];
     value: string;
     onValueChange: (value: string) => void;
     placeholder?: string;
@@ -14,6 +14,7 @@ interface SearchableSelectProps {
     emptyMessage?: string;
     onCreate?: (value: string) => void;
     createLabel?: string;
+    onDelete?: (id: string) => void;
 }
 
 export function SearchableSelect({
@@ -24,11 +25,13 @@ export function SearchableSelect({
     className,
     emptyMessage = "No results found.",
     onCreate,
-    createLabel = "Create new"
+    createLabel = "Create new",
+    onDelete
 }: SearchableSelectProps) {
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState("");
     const containerRef = React.useRef<HTMLDivElement>(null);
+    const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
     const selectedOption = options.find((opt) => opt.id === value);
 
@@ -55,6 +58,16 @@ export function SearchableSelect({
     React.useEffect(() => {
         if (!open) setSearch("");
     }, [open]);
+
+    // Handle delete with confirmation or direct
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (onDelete) {
+            setDeletingId(id);
+            await onDelete(id);
+            setDeletingId(null);
+        }
+    };
 
     return (
         <div className={cn("relative w-full", className)} ref={containerRef}>
@@ -134,23 +147,34 @@ export function SearchableSelect({
                                 </div>
                             ) : (
                                 filteredOptions.map((opt) => (
-                                    <button
+                                    <div
                                         key={opt.id}
-                                        type="button"
-                                        onClick={() => {
-                                            onValueChange(opt.id);
-                                            setOpen(false);
-                                        }}
                                         className={cn(
-                                            "flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm transition-colors text-left",
+                                            "group/item flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm transition-colors text-left cursor-pointer",
                                             value === opt.id
                                                 ? "bg-primary/10 text-primary font-bold"
                                                 : "hover:bg-black/5 dark:hover:bg-white/5"
                                         )}
+                                        onClick={() => {
+                                            onValueChange(opt.id);
+                                            setOpen(false);
+                                        }}
                                     >
-                                        <span className="truncate">{opt.name}</span>
-                                        {value === opt.id && <Check className="h-4 w-4" />}
-                                    </button>
+                                        <span className="truncate flex-1">{opt.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            {onDelete && opt.user_id && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => handleDelete(e, opt.id)}
+                                                    className="opacity-0 group-hover/item:opacity-100 p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 transition-all hover:scale-110"
+                                                    title="Delete category"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            )}
+                                            {value === opt.id && <Check className="h-4 w-4" />}
+                                        </div>
+                                    </div>
                                 ))
                             )}
                         </div>

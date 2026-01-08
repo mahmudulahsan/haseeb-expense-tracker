@@ -16,8 +16,8 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowUpCircle, ArrowDownCircle, Check, X, Mic, Loader2, Sparkles, ArrowRightLeft, ShieldCheck, Scale, Gem } from "lucide-react";
-import { createTransaction, updateTransaction, createCategory, parseVoiceTransaction } from "@/app/actions/finance";
+import { Plus, ArrowUpCircle, ArrowDownCircle, Check, X, Mic, Loader2, Sparkles, ArrowRightLeft, ShieldCheck, Scale, Gem, HandHeart } from "lucide-react";
+import { createTransaction, updateTransaction, createCategory, parseVoiceTransaction, deleteCategory } from "@/app/actions/finance";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SearchableSelect } from "@/components/dashboard/searchable-select";
 import { formatLocalDate, formatLocalTime } from "@/lib/date-utils";
 import { toast } from "sonner";
+import { AddAccountDialog } from "./add-account-dialog";
 
 
 interface AddTransactionDialogProps {
@@ -67,9 +68,14 @@ export function AddTransactionDialog({
     const [isCreatingCategory, setIsCreatingCategory] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState("");
 
+    // Account creation states
+    const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
+    const [newAccountName, setNewAccountName] = useState("");
+    const [accountCreationSource, setAccountCreationSource] = useState<"source" | "destination" | null>(null);
+
     // Select states
-    const [selectedAccount, setSelectedAccount] = useState("");
-    const [selectedToAccount, setSelectedToAccount] = useState("");
+    const [selectedAccount, setSelectedAccount] = useState(""); // This is source account
+    const [selectedToAccount, setSelectedToAccount] = useState(""); // This is destination account
     const [selectedCategory, setSelectedCategory] = useState("");
 
     // Controlled inputs for AI pre-fill
@@ -202,7 +208,14 @@ export function AddTransactionDialog({
     // Filter categories based on transaction type
     const filteredCategories = categories.filter(cat =>
         cat.type === type || cat.type === 'both' || !cat.type
-    );
+    ).sort((a, b) => {
+        // Prioritize "Zakat"
+        if (a.name.toLowerCase() === "zakat") return -1;
+        if (b.name.toLowerCase() === "zakat") return 1;
+
+        // Then sort alphabetically
+        return a.name.localeCompare(b.name);
+    });
 
     async function handleAddCategory() {
         if (!newCategoryName) return;
@@ -217,6 +230,35 @@ export function AddTransactionDialog({
             toast.error(result.error);
         }
         setLoading(false);
+    }
+
+    async function handleDeleteCategory(id: string) {
+        if (!confirm("Are you sure you want to delete this category?")) return;
+
+        const result = await deleteCategory(id);
+        if (result.success) {
+            toast.success("Category deleted");
+            if (selectedCategory === id) {
+                setSelectedCategory("");
+            }
+            router.refresh();
+        } else {
+            toast.error(result.error);
+        }
+    }
+
+    function handleCreateAccount(name: string, source: "source" | "destination") {
+        setNewAccountName(name);
+        setAccountCreationSource(source);
+        setIsAddAccountOpen(true);
+    }
+
+    function handleAccountCreated(account: any) {
+        if (accountCreationSource === "source") {
+            setSelectedAccount(account.id);
+        } else if (accountCreationSource === "destination") {
+            setSelectedToAccount(account.id);
+        }
     }
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -422,28 +464,94 @@ export function AddTransactionDialog({
 
                         <div className="grid grid-cols-1 gap-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-                                    {type === 'transfer' ? 'From Account' : 'Account'}
-                                </label>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                                        {type === 'transfer' ? 'From Account' : 'Account'}
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleCreateAccount("", "source")}
+                                        className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline px-2 py-1 rounded-lg bg-primary/5"
+                                    >
+                                        <Plus className="h-3 w-3" /> New Account
+                                    </button>
+                                </div>
                                 <SearchableSelect
                                     options={accounts}
                                     value={selectedAccount}
                                     onValueChange={setSelectedAccount}
                                     placeholder="Select Account..."
+                                    onCreate={(name) => handleCreateAccount(name, "source")}
+                                    createLabel="Add Account"
                                 />
                                 <input type="hidden" name="account_id" value={selectedAccount} required />
                             </div>
 
                             {type === 'transfer' && (
                                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                    <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">To Account</label>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">To Account</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleCreateAccount("", "destination")}
+                                            className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline px-2 py-1 rounded-lg bg-primary/5"
+                                        >
+                                            <Plus className="h-3 w-3" /> New Account
+                                        </button>
+                                    </div>
                                     <SearchableSelect
                                         options={accounts.filter(a => a.id !== selectedAccount)}
                                         value={selectedToAccount}
                                         onValueChange={setSelectedToAccount}
                                         placeholder="Select Destination..."
+                                        onCreate={(name) => handleCreateAccount(name, "destination")}
+                                        createLabel="Add Account"
                                     />
                                     <input type="hidden" name="to_account_id" value={selectedToAccount} required />
+                                </div>
+                            )}
+
+                            {type === 'expense' && (
+                                <div className="flex items-center justify-between bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/20 mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-8 w-8 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+                                            <HandHeart className="h-4 w-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Zakat Eligible?</p>
+                                            <p className="text-[10px] text-muted-foreground/80 font-medium">Mark this as a Zakat payment</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const zakatCat = categories.find(c => c.name.toLowerCase() === 'zakat');
+                                            if (zakatCat) {
+                                                if (selectedCategory === zakatCat.id) {
+                                                    setSelectedCategory("");
+                                                } else {
+                                                    setSelectedCategory(zakatCat.id);
+                                                }
+                                            } else {
+                                                toast.error("Zakat category not found");
+                                            }
+                                        }}
+                                        className={cn(
+                                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                                            selectedCategory && categories.find(c => c.id === selectedCategory)?.name.toLowerCase() === 'zakat'
+                                                ? "bg-emerald-500"
+                                                : "bg-gray-200 dark:bg-gray-700"
+                                        )}
+                                    >
+                                        <span
+                                            className={cn(
+                                                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200",
+                                                selectedCategory && categories.find(c => c.id === selectedCategory)?.name.toLowerCase() === 'zakat'
+                                                    ? "translate-x-6"
+                                                    : "translate-x-1"
+                                            )}
+                                        />
+                                    </button>
                                 </div>
                             )}
 
@@ -511,6 +619,7 @@ export function AddTransactionDialog({
                                                     setIsCreatingCategory(true);
                                                 }}
                                                 createLabel="Add category"
+                                                onDelete={handleDeleteCategory}
                                             />
                                             <input type="hidden" name="category_id" value={selectedCategory} required />
                                         </>
@@ -606,6 +715,13 @@ export function AddTransactionDialog({
                     </form>
                 </div>
             </DialogContent>
+
+            <AddAccountDialog
+                open={isAddAccountOpen}
+                onOpenChange={setIsAddAccountOpen}
+                initialName={newAccountName}
+                onSuccess={handleAccountCreated}
+            />
         </Dialog>
     );
 }

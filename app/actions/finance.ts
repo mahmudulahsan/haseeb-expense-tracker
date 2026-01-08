@@ -29,10 +29,10 @@ export async function createAccount(formData: FormData) {
         return { error: "Invalid fields", details: validatedFields.error.flatten().fieldErrors };
     }
 
-    const { error } = await supabase.from("accounts").insert({
+    const { data, error } = await supabase.from("accounts").insert({
         ...validatedFields.data,
         user_id: session.user.id,
-    });
+    }).select().single();
 
     if (error) {
         console.error("Database error:", error);
@@ -40,7 +40,7 @@ export async function createAccount(formData: FormData) {
     }
 
     revalidatePath("/");
-    return { success: true };
+    return { success: true, account: data };
 }
 
 export async function createTransaction(formData: FormData) {
@@ -457,6 +457,28 @@ export async function createCategory(name: string, type: string = "expense", col
 
     revalidatePath("/");
     return { success: true, category: data };
+}
+
+export async function deleteCategory(id: string) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    // Only allow deleting categories owned by the user
+    const { error } = await supabase
+        .from("categories")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", session.user.id);
+
+    if (error) {
+        console.error("Delete category error:", error);
+        return { error: "Failed to delete category" };
+    }
+
+    revalidatePath("/");
+    return { success: true };
 }
 
 export async function updateProfile(formData: FormData) {

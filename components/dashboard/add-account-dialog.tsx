@@ -34,8 +34,25 @@ const ICONS = [
     { name: "Shield", icon: Shield },
 ];
 
-export function AddAccountDialog({ variant = 'full' }: { variant?: 'full' | 'compact' }) {
-    const [open, setOpen] = useState(false);
+interface AddAccountDialogProps {
+    variant?: 'full' | 'compact';
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    initialName?: string;
+    onSuccess?: (account: any) => void;
+}
+
+export function AddAccountDialog({
+    variant = 'full',
+    open: controlledOpen,
+    onOpenChange: controlledOnOpenChange,
+    initialName = "",
+    onSuccess
+}: AddAccountDialogProps) {
+    const [internalOpen, setInternalOpen] = useState(false);
+    const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+    const setOpen = controlledOnOpenChange || setInternalOpen;
+
     const [loading, setLoading] = useState(false);
     const [selectedIcon, setSelectedIcon] = useState("Wallet");
     const [selectedType, setSelectedType] = useState("Current");
@@ -54,6 +71,9 @@ export function AddAccountDialog({ variant = 'full' }: { variant?: 'full' | 'com
             setOpen(false);
             toast.success("Account created successfully");
             router.refresh();
+            if (onSuccess && result.account) {
+                onSuccess(result.account);
+            }
         } else {
             toast.error(result.error);
         }
@@ -62,18 +82,22 @@ export function AddAccountDialog({ variant = 'full' }: { variant?: 'full' | 'com
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                {variant === 'compact' ? (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl bg-gray-100/50 dark:bg-white/5 hover:bg-primary/20 hover:text-primary transition-all">
-                        <Plus className="h-4 w-4" />
-                    </Button>
-                ) : (
+            {variant !== 'compact' && controlledOpen === undefined && (
+                <DialogTrigger asChild>
                     <Button variant="outline" className="w-full h-16 border-dashed border-2 rounded-[1.5rem] mt-2 gap-2 text-muted-foreground hover:text-primary hover:border-primary transition-all">
                         <Plus className="h-5 w-5" />
                         New Account
                     </Button>
-                )}
-            </DialogTrigger>
+                </DialogTrigger>
+            )}
+            {variant === 'compact' && controlledOpen === undefined && (
+                <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl bg-gray-100/50 dark:bg-white/5 hover:bg-primary/20 hover:text-primary transition-all">
+                        <Plus className="h-4 w-4" />
+                    </Button>
+                </DialogTrigger>
+            )}
+
             <DialogContent className="w-[95%] sm:max-w-[425px] rounded-[2rem] p-6 max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Add New Account</DialogTitle>
@@ -108,6 +132,7 @@ export function AddAccountDialog({ variant = 'full' }: { variant?: 'full' | 'com
                         <input
                             name="name"
                             required
+                            defaultValue={initialName}
                             className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none"
                             placeholder="e.g. My Savings"
                         />
