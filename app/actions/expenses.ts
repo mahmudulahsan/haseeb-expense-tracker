@@ -3,7 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
 import { expenseSchema } from "@/lib/validations/expense";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function createExpense(formData: FormData) {
     const session = await getSession();
@@ -41,6 +41,7 @@ export async function createExpense(formData: FormData) {
     }
 
     // 4. Update UI
-    revalidatePath("/");
+    revalidateTag(`expenses-${session.user.id}`);
+    revalidatePath("/", "layout");
     return { success: true };
 }

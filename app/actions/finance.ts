@@ -3,7 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession, logout } from "@/lib/auth";
 import { accountSchema, transactionSchema } from "@/lib/validations/finance";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseTransactionWithAI, getSmartInsights } from "@/services/ai";
 import { encrypt, decrypt } from "@/lib/crypto";
@@ -39,7 +39,8 @@ export async function createAccount(formData: FormData) {
         return { error: `Failed to create account: ${error.message}` };
     }
 
-    revalidatePath("/");
+    revalidateTag(`accounts-${session.user.id}`);
+    revalidatePath("/", "layout");
     return { success: true, account: data };
 }
 
@@ -142,7 +143,13 @@ export async function createTransaction(formData: FormData) {
         }
     }
 
-    revalidatePath("/");
+    revalidateTag(`expenses-${session.user.id}`);
+    revalidateTag(`accounts-${session.user.id}`);
+    revalidateTag(`account-transactions-${transaction.account_id}`);
+    if (transaction.to_account_id) {
+        revalidateTag(`account-transactions-${transaction.to_account_id}`);
+    }
+    revalidatePath("/", "layout");
     return { success: true };
 }
 
@@ -276,7 +283,16 @@ export async function updateTransaction(id: string, formData: FormData) {
         }
     }
 
-    revalidatePath("/");
+    revalidateTag(`expenses-${session.user.id}`);
+    revalidateTag(`accounts-${session.user.id}`);
+    if (oldTx) {
+        revalidateTag(`account-transactions-${oldTx.account_id}`);
+        if (oldTx.to_account_id) revalidateTag(`account-transactions-${oldTx.to_account_id}`);
+    }
+    revalidateTag(`account-transactions-${updatedData.account_id}`);
+    if (updatedData.to_account_id) revalidateTag(`account-transactions-${updatedData.to_account_id}`);
+
+    revalidatePath("/", "layout");
     return { success: true };
 }
 
@@ -297,7 +313,8 @@ export async function deleteAccount(id: string) {
         return { error: "Failed to delete account" };
     }
 
-    revalidatePath("/");
+    revalidateTag(`accounts-${session.user.id}`);
+    revalidatePath("/", "layout");
     return { success: true };
 }
 
@@ -364,7 +381,13 @@ export async function deleteTransaction(id: string) {
         }
     }
 
-    revalidatePath("/");
+    revalidateTag(`expenses-${session.user.id}`);
+    revalidateTag(`accounts-${session.user.id}`);
+    if (tx) {
+        revalidateTag(`account-transactions-${tx.account_id}`);
+        if ((tx as any).to_account_id) revalidateTag(`account-transactions-${(tx as any).to_account_id}`);
+    }
+    revalidatePath("/", "layout");
     return { success: true };
 }
 
@@ -428,7 +451,11 @@ export async function deleteTransactionsBulk(ids: string[]) {
         }
     }
 
-    revalidatePath("/");
+    revalidateTag(`expenses-${session.user.id}`);
+    revalidateTag(`accounts-${session.user.id}`);
+    // Invalidate all account transactions just to be safe for bulk operations
+    revalidateTag(`account-transactions`);
+    revalidatePath("/", "layout");
     return { success: true };
 }
 
@@ -455,7 +482,8 @@ export async function createCategory(name: string, type: string = "expense", col
         return { error: "Failed to create category" };
     }
 
-    revalidatePath("/");
+    revalidateTag(`categories-${session.user.id}`);
+    revalidatePath("/", "layout");
     return { success: true, category: data };
 }
 
@@ -477,7 +505,8 @@ export async function deleteCategory(id: string) {
         return { error: "Failed to delete category" };
     }
 
-    revalidatePath("/");
+    revalidateTag(`categories-${session.user.id}`);
+    revalidatePath("/", "layout");
     return { success: true };
 }
 
@@ -508,7 +537,7 @@ export async function updateProfile(formData: FormData) {
         return { error: `Failed to update profile: ${error.message}` };
     }
 
-    revalidatePath("/");
+    revalidatePath("/", "layout");
     return { success: true };
 }
 
@@ -607,7 +636,7 @@ export async function updateZakatBreakdown(breakdown: any) {
         return { error: `Failed to update zakat breakdown: ${error.message}` };
     }
 
-    revalidatePath("/");
+    revalidatePath("/", "layout");
     return { success: true };
 }
 
@@ -635,7 +664,7 @@ export async function updateZakatTarget(amount: number) {
         return { error: `Failed to update zakat target: ${error.message}` };
     }
 
-    revalidatePath("/");
+    revalidatePath("/", "layout");
     return { success: true };
 }
 
@@ -845,7 +874,7 @@ export async function updateCategoryTarget(categoryId: string, target: number) {
         return { error: `Failed to update target: ${error.message}` };
     }
 
-    revalidatePath("/");
+    revalidatePath("/", "layout");
     return { success: true };
 }
 
