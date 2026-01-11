@@ -786,7 +786,26 @@ export async function generateInsights(expenses: any[], categories: any[], curre
 
         // 2. Generate new insights
         console.log("AI INSIGHTS: Fetching fresh AI analysis...");
-        const insights = await getSmartInsights(expenses, categories, currencySymbol, localDate);
+
+        // Fetch Zakat and Liabilities context to pass to AI
+        const [zakatBreakdown, liabilitiesData, { data: profile }] = await Promise.all([
+            getZakatBreakdown(),
+            getLiabilitiesData(),
+            supabase.from("profiles").select("zakat_target").eq("id", session.user.id).single()
+        ]);
+
+        const extraContext = {
+            zakat: {
+                breakdown: zakatBreakdown.success ? zakatBreakdown.breakdown : null,
+                target: profile?.zakat_target ? Number(decrypt(profile.zakat_target)) : null
+            },
+            liabilities: liabilitiesData.success ? {
+                total: liabilitiesData.liabilities?.reduce((sum: number, l: any) => sum + (Number(l.amount) || 0), 0),
+                items: liabilitiesData.liabilities
+            } : null
+        };
+
+        const insights = await getSmartInsights(expenses, categories, currencySymbol, localDate, extraContext);
 
         // 3. Save/Update in DB (Encrypted)
         const encryptedInsights = {
@@ -882,4 +901,75 @@ export async function getMonthlyCategorySpending() {
     });
 
     return { success: true, spending };
+}
+
+export async function getLiabilitiesData() {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+        .from("profiles")
+        .select("liabilities_data")
+        .eq("id", session.user.id)
+        .single();
+
+    if (error) {
+        // If the column doesn't exist, we'll get an error. 
+        // We'll handle this by returning default values.
+        console.error("Liabilities fetch error:", error);
+        return { success: true, liabilities: [], calculate: false };
+    }
+
+    let rawData = data?.liabilities_data;
+    if (!rawData) return { success: true, liabilities: [], calculate: false };
+
+    try {
+        if (typeof rawData === 'object' && 'encrypted' in rawData) {
+            const decrypted = decrypt(rawData.encrypted);
+            const parsed = JSON.parse(decrypted);
+            return {
+                success: true,
+                liabilities: parsed.liabilities || [],
+                calculate: parsed.calculate || false
+            };
+        }
+        return {
+            success: true,
+            liabilities: rawData.liabilities || [],
+            calculate: rawData.calculate || false
+        };
+    } catch (e) {
+        console.error("Failed to parse liabilities data:", e);
+        return { success: true, liabilities: [], calculate: false };
+    }
+}
+
+export async function updateLiabilitiesData(liabilities: any[], calculate: boolean) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    const cleanData = { liabilities, calculate };
+    const encryptedData = {
+        encrypted: encrypt(JSON.stringify(cleanData))
+    };
+
+    const { error } = await supabase
+        .from("profiles")
+        .update({
+            liabilities_data: encryptedData,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", session.user.id);
+
+    if (error) {
+        console.error("Liabilities update error:", error);
+        return { error: `Failed to update liabilities: ${error.message}` };
+    }
+
+    revalidatePath("/");
+    return { success: true };
 }

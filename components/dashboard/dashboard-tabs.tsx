@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { HomeContent } from "./home-content";
 import { StatisticsContent } from "./statistics-content";
 import { ZakatContent } from "./zakat-content";
+import { LiabilitiesContent } from "./liabilities-content";
 
 interface DashboardTabsProps {
     expenses: any[];
@@ -15,6 +16,8 @@ interface DashboardTabsProps {
     totalIncome: number;
     totalSpent: number;
     zakatTarget: number;
+    liabilities?: any[];
+    calculateLiabilities?: boolean;
 }
 
 export function DashboardTabs(props: DashboardTabsProps) {
@@ -45,6 +48,11 @@ export function DashboardTabs(props: DashboardTabsProps) {
                     zakatTarget={props.zakatTarget}
                     expenses={props.expenses}
                     categories={props.categories}
+                />
+            )}
+            {activeTab === "liabilities" && (
+                <LiabilitiesContent
+                    currencySymbol={props.currencySymbol}
                 />
             )}
         </div>

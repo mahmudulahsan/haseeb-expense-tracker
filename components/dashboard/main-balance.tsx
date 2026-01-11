@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { SpendingHeatmap } from "@/components/dashboard/spending-heatmap";
 import { parseLocalDate } from "@/lib/date-utils";
+import { updateLiabilitiesData } from "@/app/actions/finance";
 
 interface MainBalanceProps {
     accounts: any[];
@@ -23,12 +24,25 @@ interface MainBalanceProps {
     currencySymbol?: string;
     expenses: any[];
     zakatTarget: number;
+    liabilities?: any[];
+    calculateLiabilities?: boolean;
     children: React.ReactNode; // For the AddTransactionDialog
 }
 
-export function MainBalance({ accounts, categories, greeting, currencySymbol = "$", expenses, zakatTarget, children }: MainBalanceProps) {
+export function MainBalance({
+    accounts,
+    categories,
+    greeting,
+    currencySymbol = "$",
+    expenses,
+    zakatTarget,
+    liabilities = [],
+    calculateLiabilities = false,
+    children
+}: MainBalanceProps) {
     // Load selected accounts from localStorage or default to all accounts
     const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
+        // ... previous code for setSelectedAccountIds ...
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('selectedAccountIds');
             if (saved) {
@@ -49,6 +63,21 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
         }
         return true;
     });
+
+    const [isCalculateEnabled, setIsCalculateEnabled] = useState(calculateLiabilities);
+
+    useEffect(() => {
+        setIsCalculateEnabled(calculateLiabilities);
+    }, [calculateLiabilities]);
+
+    const handleCalculateToggle = async (val: boolean) => {
+        setIsCalculateEnabled(val);
+        await updateLiabilitiesData(liabilities, val);
+    };
+
+    const totalLiabilities = useMemo(() => {
+        return liabilities.reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0);
+    }, [liabilities]);
 
     // Save to localStorage whenever selection changes
     useEffect(() => {
@@ -74,8 +103,9 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
     const filteredCount = filteredAccounts.length;
 
     const displayBalance = useMemo(() => {
-        return filteredAccounts.reduce((sum, acc) => sum + Number(acc.balance), 0);
-    }, [filteredAccounts]);
+        const bal = filteredAccounts.reduce((sum, acc) => sum + Number(acc.balance), 0);
+        return isCalculateEnabled ? bal - totalLiabilities : bal;
+    }, [filteredAccounts, isCalculateEnabled, totalLiabilities]);
 
     const activeAccountNames = filteredAccounts
         .map((acc) => acc.name)
@@ -180,6 +210,26 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
                                                 );
                                             })}
                                         </div>
+
+                                        <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-100 dark:bg-white/5 border-2 border-transparent">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-sm">Calculate Liabilities</span>
+                                                <span className="text-[10px] opacity-50 font-medium">Subtract from net balance</span>
+                                            </div>
+                                            <button
+                                                onClick={() => handleCalculateToggle(!isCalculateEnabled)}
+                                                className={cn(
+                                                    "w-10 h-5 rounded-full transition-colors relative flex items-center px-1",
+                                                    isCalculateEnabled ? "bg-primary" : "bg-gray-300 dark:bg-white/20"
+                                                )}
+                                            >
+                                                <motion.div
+                                                    animate={{ x: isCalculateEnabled ? 20 : 0 }}
+                                                    className="h-3 w-3 bg-white rounded-full shadow-lg"
+                                                />
+                                            </button>
+                                        </div>
+
                                         <div className="flex gap-2 mt-2 pt-4 border-t border-gray-100 dark:border-white/10">
                                             <Button
                                                 variant="ghost"
@@ -213,6 +263,7 @@ export function MainBalance({ accounts, categories, greeting, currencySymbol = "
                                     <EyeOff className="h-4 w-4 opacity-40 hover:opacity-100" />
                                 )}
                             </motion.button>
+
                         </div>
 
                         <AnimatePresence mode="wait">

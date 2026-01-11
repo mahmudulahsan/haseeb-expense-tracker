@@ -57,6 +57,8 @@ interface HomeContentProps {
     totalIncome: number;
     totalSpent: number;
     zakatTarget: number;
+    liabilities?: any[];
+    calculateLiabilities?: boolean;
 }
 
 const MONTHS = [
@@ -72,7 +74,9 @@ export function HomeContent({
     currencySymbol,
     totalIncome,
     totalSpent,
-    zakatTarget
+    zakatTarget,
+    liabilities = [],
+    calculateLiabilities = false
 }: HomeContentProps) {
     const timeGreeting = getTimeBasedGreeting();
     const personalizedGreeting = greeting.startsWith("Hey,")
@@ -326,6 +330,8 @@ export function HomeContent({
                                 currencySymbol={currencySymbol}
                                 expenses={expenses}
                                 zakatTarget={zakatTarget}
+                                liabilities={liabilities}
+                                calculateLiabilities={calculateLiabilities}
                             >
                                 <AddTransactionDialog
                                     accounts={accounts}

@@ -76,7 +76,7 @@ IMPORTANT: Output ONLY the raw JSON object. Do not include markdown code blocks 
     }
 }
 
-export async function getSmartInsights(expenses: any[], categories: any[], currencySymbol: string = "$", localDate?: string) {
+export async function getSmartInsights(expenses: any[], categories: any[], currencySymbol: string = "$", localDate?: string, extraContext?: { zakat?: any, liabilities?: any }) {
     const today = localDate || new Date().toISOString().split('T')[0];
     const apiKey = process.env.ZHIPU_AI_API_KEY;
     if (!apiKey) throw new Error("ZHIPU_AI_API_KEY is not set");
@@ -100,7 +100,8 @@ export async function getSmartInsights(expenses: any[], categories: any[], curre
         category: tx.categories?.name,
         description: tx.description,
         date: tx.date,
-        type: tx.type
+        type: tx.type,
+        necessity: tx.necessity_level
     }));
 
     const systemPrompt = `You are "Haseeb AI", a brilliant and empathetic financial advisor. Your mission is to analyze spending patterns and provide high-value, personalized insights.
@@ -112,6 +113,7 @@ Guidelines:
 4. TONE: Warm, encouraging, and sophisticated.
 5. NO PLACEHOLDERS: Use the actual data provided.
 6. CURRENCY: Use ${currencySymbol} for all monetary references.
+7. PRIORITIZE OBLIGATIONS: If the user has outstanding Zakat or Liabilities (debts), and you see "unnecessary" spending, create an insight advising them to cut down on those expenses to fulfill their obligations sooner.
 
 Output MUST be a JSON array of exactly 3 insight objects.
 Each object must have:
@@ -126,7 +128,9 @@ Output ONLY the raw JSON array. No markdown.`;
 Total Expenses: ${totalSpent}
 Spending by Category: ${JSON.stringify(categorySummary)}
 Recent Activity: ${JSON.stringify(recentTransactions)}
-Current Date: ${today}`;
+Current Date: ${today}
+${extraContext?.zakat ? `Zakat Status: ${JSON.stringify(extraContext.zakat)}` : ''}
+${extraContext?.liabilities ? `Liabilities Info: ${JSON.stringify(extraContext.liabilities)}` : ''}`;
 
     const response = await fetch("https://open.bigmodel.cn/api/paas/v4/chat/completions", {
         method: "POST",
