@@ -97,7 +97,12 @@ export function LiabilitiesContent({
                 <div className="lg:col-span-2 space-y-6">
                     <Card className="border-none shadow-sm overflow-hidden bg-white/50 dark:bg-white/5 backdrop-blur-md">
                         <CardHeader className="flex flex-row items-center justify-between pb-4">
-                            <CardTitle className="text-lg font-black">Liabilities List</CardTitle>
+                            <CardTitle className="text-lg font-black flex items-center gap-2">
+                                Liabilities List
+                                <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                    {currencySymbol}{totalLiabilities.toLocaleString()}
+                                </span>
+                            </CardTitle>
                             <Button
                                 onClick={addLiability}
                                 size="sm"
