@@ -2,10 +2,10 @@ import * as jose from "jose";
 
 export async function generateZhipuToken(apiKey: string) {
     const [id, secret] = apiKey.split(".");
-    const timestamp = Date.now();
+    const timestamp = Math.floor(Date.now() / 1000);
     const payload = {
         api_key: id,
-        exp: timestamp + 3600000, // 1 hour
+        exp: timestamp + 3600, // 1 hour
         timestamp: timestamp,
     };
     const secretKey = new TextEncoder().encode(secret);
@@ -48,7 +48,7 @@ IMPORTANT: Output ONLY the raw JSON object. Do not include markdown code blocks 
             "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
-            model: "glm-4.6",
+            model: "glm-4.7-flash",
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: text }
@@ -139,7 +139,7 @@ ${extraContext?.liabilities ? `Liabilities Info: ${JSON.stringify(extraContext.l
             "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
-            model: "glm-4.7",
+            model: "glm-4.7-flash",
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }
@@ -149,6 +149,8 @@ ${extraContext?.liabilities ? `Liabilities Info: ${JSON.stringify(extraContext.l
     });
 
     if (!response.ok) {
+        const errorText = await response.text();
+        console.error("AI Service Error Stats:", response.status, errorText);
         throw new Error("AI Service temporary unavailable");
     }
 
