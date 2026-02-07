@@ -17,6 +17,7 @@ import { DynamicIcon } from "@/components/ui/dynamic-icon";
 import { DeleteAccountButton } from "@/components/dashboard/delete-account-button";
 import { DeleteTransactionButton } from "@/components/dashboard/delete-transaction-button";
 import { AddAccountDialog } from "@/components/dashboard/add-account-dialog";
+import { EditAccountDialog } from "@/components/dashboard/edit-account-dialog";
 import { SpendingHeatmap } from "@/components/dashboard/spending-heatmap";
 import {
     Select,
@@ -414,7 +415,8 @@ export function HomeContent({
                                             <div className="h-8 w-8 bg-white/60 dark:bg-black/20 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-sm relative z-10">
                                                 <DynamicIcon name={acc.icon || "Wallet"} className="h-4 w-4" />
                                             </div>
-                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity relative z-10" onClick={(e) => e.stopPropagation()}>
+                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity relative z-10 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                                <EditAccountDialog account={acc} />
                                                 <DeleteAccountButton id={acc.id} name={acc.name} />
                                             </div>
                                         </div>

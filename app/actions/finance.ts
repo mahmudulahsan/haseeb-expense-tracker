@@ -43,6 +43,45 @@ export async function createAccount(formData: FormData) {
     return { success: true, account: data };
 }
 
+export async function updateAccount(id: string, formData: FormData) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    const rawData = {
+        name: formData.get("name"),
+        type: formData.get("type"),
+        balance: formData.get("balance"),
+        color: formData.get("color") || undefined,
+        icon: formData.get("icon") || undefined,
+    };
+
+    const validatedFields = accountSchema.safeParse(rawData);
+
+    if (!validatedFields.success) {
+        return { error: "Invalid fields", details: validatedFields.error.flatten().fieldErrors };
+    }
+
+    const { data, error } = await supabase
+        .from("accounts")
+        .update({
+            ...validatedFields.data,
+        })
+        .eq("id", id)
+        .eq("user_id", session.user.id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error("Database error:", error);
+        return { error: `Failed to update account: ${error.message}` };
+    }
+
+    revalidatePath("/");
+    return { success: true, account: data };
+}
+
 export async function createTransaction(formData: FormData) {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };
