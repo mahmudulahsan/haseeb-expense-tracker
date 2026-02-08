@@ -6,6 +6,7 @@ import { HomeContent } from "./home-content";
 import { StatisticsContent } from "./statistics-content";
 import { ZakatContent } from "./zakat-content";
 import { LiabilitiesContent } from "./liabilities-content";
+import { LentContent } from "./lent-content";
 
 interface DashboardTabsProps {
     expenses: any[];
@@ -18,6 +19,8 @@ interface DashboardTabsProps {
     zakatTarget: number;
     liabilities?: any[];
     calculateLiabilities?: boolean;
+    lent?: any[];
+    calculateLent?: boolean;
 }
 
 export function DashboardTabs(props: DashboardTabsProps) {
@@ -52,6 +55,11 @@ export function DashboardTabs(props: DashboardTabsProps) {
             )}
             {activeTab === "liabilities" && (
                 <LiabilitiesContent
+                    currencySymbol={props.currencySymbol}
+                />
+            )}
+            {activeTab === "lent" && (
+                <LentContent
                     currencySymbol={props.currencySymbol}
                 />
             )}

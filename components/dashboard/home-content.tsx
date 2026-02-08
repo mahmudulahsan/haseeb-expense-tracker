@@ -60,6 +60,8 @@ interface HomeContentProps {
     zakatTarget: number;
     liabilities?: any[];
     calculateLiabilities?: boolean;
+    lent?: any[];
+    calculateLent?: boolean;
 }
 
 const MONTHS = [
@@ -77,7 +79,9 @@ export function HomeContent({
     totalSpent,
     zakatTarget,
     liabilities = [],
-    calculateLiabilities = false
+    calculateLiabilities = false,
+    lent = [],
+    calculateLent = false
 }: HomeContentProps) {
     const timeGreeting = getTimeBasedGreeting();
     const personalizedGreeting = greeting.startsWith("Hey,")
@@ -333,6 +337,8 @@ export function HomeContent({
                                 zakatTarget={zakatTarget}
                                 liabilities={liabilities}
                                 calculateLiabilities={calculateLiabilities}
+                                lent={lent}
+                                calculateLent={calculateLent}
                             >
                                 <AddTransactionDialog
                                     accounts={accounts}
@@ -396,7 +402,7 @@ export function HomeContent({
                                     <motion.div
                                         key={acc.id}
                                         layout
-                                        whileHover={{ scale: 1.02, y: -2, zIndex: 10 }}
+                                        whileHover={{ zIndex: 10 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => {
                                             setDetailedAccount(acc);
@@ -415,7 +421,7 @@ export function HomeContent({
                                             <div className="h-8 w-8 bg-white/60 dark:bg-black/20 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-sm relative z-10">
                                                 <DynamicIcon name={acc.icon || "Wallet"} className="h-4 w-4" />
                                             </div>
-                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity relative z-10 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                            <div className="relative z-10 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                                 <EditAccountDialog account={acc} />
                                                 <DeleteAccountButton id={acc.id} name={acc.name} />
                                             </div>

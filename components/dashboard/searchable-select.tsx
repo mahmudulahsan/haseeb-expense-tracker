@@ -15,6 +15,7 @@ interface SearchableSelectProps {
     onCreate?: (value: string) => void;
     createLabel?: string;
     onDelete?: (id: string) => void;
+    disabled?: boolean;
 }
 
 export function SearchableSelect({
@@ -26,7 +27,8 @@ export function SearchableSelect({
     emptyMessage = "No results found.",
     onCreate,
     createLabel = "Create new",
-    onDelete
+    onDelete,
+    disabled = false
 }: SearchableSelectProps) {
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState("");
@@ -73,10 +75,12 @@ export function SearchableSelect({
         <div className={cn("relative w-full", className)} ref={containerRef}>
             <button
                 type="button"
-                onClick={() => setOpen(!open)}
+                onClick={() => !disabled && setOpen(!open)}
+                disabled={disabled}
                 className={cn(
                     "flex h-12 w-full items-center justify-between rounded-2xl border-none bg-gray-100 dark:bg-white/5 px-4 py-2 text-sm transition-all focus:ring-2 focus:ring-primary outline-none font-medium",
-                    open && "ring-2 ring-primary bg-white dark:bg-white/10"
+                    open && "ring-2 ring-primary bg-white dark:bg-white/10",
+                    disabled && "opacity-60 cursor-not-allowed grayscale-[0.5]"
                 )}
             >
                 <span className={cn("truncate", !selectedOption && "text-muted-foreground")}>

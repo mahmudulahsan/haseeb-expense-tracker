@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { SpendingHeatmap } from "@/components/dashboard/spending-heatmap";
 import { parseLocalDate } from "@/lib/date-utils";
-import { updateLiabilitiesData } from "@/app/actions/finance";
+import { updateLiabilitiesData, updateLentData } from "@/app/actions/finance";
 
 interface MainBalanceProps {
     accounts: any[];
@@ -26,6 +26,8 @@ interface MainBalanceProps {
     zakatTarget: number;
     liabilities?: any[];
     calculateLiabilities?: boolean;
+    lent?: any[];
+    calculateLent?: boolean;
     children: React.ReactNode; // For the AddTransactionDialog
 }
 
@@ -38,6 +40,8 @@ export function MainBalance({
     zakatTarget,
     liabilities = [],
     calculateLiabilities = false,
+    lent = [],
+    calculateLent = false,
     children
 }: MainBalanceProps) {
     // Load selected accounts from localStorage or default to all accounts
@@ -65,19 +69,33 @@ export function MainBalance({
     });
 
     const [isCalculateEnabled, setIsCalculateEnabled] = useState(calculateLiabilities);
+    const [isCalculateLentEnabled, setIsCalculateLentEnabled] = useState(calculateLent);
 
     useEffect(() => {
         setIsCalculateEnabled(calculateLiabilities);
     }, [calculateLiabilities]);
+
+    useEffect(() => {
+        setIsCalculateLentEnabled(calculateLent);
+    }, [calculateLent]);
 
     const handleCalculateToggle = async (val: boolean) => {
         setIsCalculateEnabled(val);
         await updateLiabilitiesData(liabilities, val);
     };
 
+    const handleCalculateLentToggle = async (val: boolean) => {
+        setIsCalculateLentEnabled(val);
+        await updateLentData(lent, val);
+    };
+
     const totalLiabilities = useMemo(() => {
         return liabilities.reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0);
     }, [liabilities]);
+
+    const totalLent = useMemo(() => {
+        return lent.reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0);
+    }, [lent]);
 
     // Save to localStorage whenever selection changes
     useEffect(() => {
@@ -103,9 +121,11 @@ export function MainBalance({
     const filteredCount = filteredAccounts.length;
 
     const displayBalance = useMemo(() => {
-        const bal = filteredAccounts.reduce((sum, acc) => sum + Number(acc.balance), 0);
-        return isCalculateEnabled ? bal - totalLiabilities : bal;
-    }, [filteredAccounts, isCalculateEnabled, totalLiabilities]);
+        let bal = filteredAccounts.reduce((sum, acc) => sum + Number(acc.balance), 0);
+        if (isCalculateEnabled) bal -= totalLiabilities;
+        if (isCalculateLentEnabled) bal += totalLent;
+        return bal;
+    }, [filteredAccounts, isCalculateEnabled, totalLiabilities, isCalculateLentEnabled, totalLent]);
 
     const activeAccountNames = filteredAccounts
         .map((acc) => acc.name)
@@ -225,6 +245,25 @@ export function MainBalance({
                                             >
                                                 <motion.div
                                                     animate={{ x: isCalculateEnabled ? 20 : 0 }}
+                                                    className="h-3 w-3 bg-white rounded-full shadow-lg"
+                                                />
+                                            </button>
+                                        </div>
+
+                                        <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-100 dark:bg-white/5 border-2 border-transparent">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-sm">Calculate Lent Money</span>
+                                                <span className="text-[10px] opacity-50 font-medium">Add to net balance</span>
+                                            </div>
+                                            <button
+                                                onClick={() => handleCalculateLentToggle(!isCalculateLentEnabled)}
+                                                className={cn(
+                                                    "w-10 h-5 rounded-full transition-colors relative flex items-center px-1",
+                                                    isCalculateLentEnabled ? "bg-primary" : "bg-gray-300 dark:bg-white/20"
+                                                )}
+                                            >
+                                                <motion.div
+                                                    animate={{ x: isCalculateLentEnabled ? 20 : 0 }}
                                                     className="h-3 w-3 bg-white rounded-full shadow-lg"
                                                 />
                                             </button>

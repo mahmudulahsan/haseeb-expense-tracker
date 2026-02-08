@@ -16,7 +16,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowUpCircle, ArrowDownCircle, Check, X, Mic, Loader2, Sparkles, ArrowRightLeft, ShieldCheck, Scale, Gem, HandHeart } from "lucide-react";
+import { Plus, ArrowUpCircle, ArrowDownCircle, Check, X, Mic, Loader2, Sparkles, ArrowRightLeft, ShieldCheck, Scale, Gem, HandHeart, Unplug, Handshake } from "lucide-react";
 import { createTransaction, updateTransaction, createCategory, parseVoiceTransaction, deleteCategory } from "@/app/actions/finance";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -84,6 +84,8 @@ export function AddTransactionDialog({
     const [date, setDate] = useState(formatLocalDate());
     const [time, setTime] = useState(formatLocalTime());
     const [necessityLevel, setNecessityLevel] = useState("neutral");
+    const [isLent, setIsLent] = useState(false);
+    const [isBorrow, setIsBorrow] = useState(false);
 
     // Effect to handle initialData
     useEffect(() => {
@@ -110,6 +112,35 @@ export function AddTransactionDialog({
             }
         }
     }, [open, initialData, isEditing]);
+
+    // Synchronize Lend/Borrow buttons with Category selection
+    useEffect(() => {
+        if (!selectedCategory) {
+            setIsLent(false);
+            setIsBorrow(false);
+            return;
+        }
+
+        const cat = categories.find(c => c.id === selectedCategory);
+        if (cat) {
+            const name = cat.name.toLowerCase();
+            if (name === 'lend') {
+                setIsLent(true);
+                setIsBorrow(false);
+                setType("expense");
+            } else if (name === 'borrow') {
+                setIsBorrow(true);
+                setIsLent(false);
+                setType("income");
+            } else {
+                setIsLent(false);
+                setIsBorrow(false);
+            }
+        } else {
+            setIsLent(false);
+            setIsBorrow(false);
+        }
+    }, [selectedCategory, categories]);
 
     // AI Voice states
     const [isListening, setIsListening] = useState(false);
@@ -216,9 +247,12 @@ export function AddTransactionDialog({
 
 
     // Filter categories based on transaction type
-    const filteredCategories = categories.filter(cat =>
-        cat.type === type || cat.type === 'both' || !cat.type
-    ).sort((a, b) => {
+    const filteredCategories = categories.filter(cat => {
+        const name = cat.name?.toLowerCase();
+        // Always show Lend and Borrow to prevent selection issues
+        if (name === 'lend' || name === 'borrow') return true;
+        return (cat.type?.toLowerCase() === type?.toLowerCase()) || cat.type?.toLowerCase() === 'both' || !cat.type;
+    }).sort((a, b) => {
         // Prioritize "Zakat"
         if (a.name.toLowerCase() === "zakat") return -1;
         if (b.name.toLowerCase() === "zakat") return 1;
@@ -423,7 +457,7 @@ export function AddTransactionDialog({
                     <div className="flex p-1 bg-gray-100 dark:bg-white/5 rounded-2xl mt-4">
                         <button
                             type="button"
-                            onClick={() => { setType("expense"); setIsCreatingCategory(false); setSelectedCategory(""); }}
+                            onClick={() => { setType("expense"); setIsCreatingCategory(false); setSelectedCategory(""); setIsLent(false); setIsBorrow(false); }}
                             className={cn(
                                 "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all",
                                 type === "expense" ? "bg-white dark:bg-black shadow-sm text-red-500" : "text-muted-foreground"
@@ -434,7 +468,7 @@ export function AddTransactionDialog({
                         </button>
                         <button
                             type="button"
-                            onClick={() => { setType("income"); setIsCreatingCategory(false); setSelectedCategory(""); }}
+                            onClick={() => { setType("income"); setIsCreatingCategory(false); setSelectedCategory(""); setIsLent(false); setIsBorrow(false); }}
                             className={cn(
                                 "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all",
                                 type === "income" ? "bg-white dark:bg-black shadow-sm text-emerald-500" : "text-muted-foreground"
@@ -445,7 +479,7 @@ export function AddTransactionDialog({
                         </button>
                         <button
                             type="button"
-                            onClick={() => { setType("transfer"); setIsCreatingCategory(false); setSelectedCategory(""); }}
+                            onClick={() => { setType("transfer"); setIsCreatingCategory(false); setSelectedCategory(""); setIsLent(false); setIsBorrow(false); }}
                             className={cn(
                                 "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all",
                                 type === "transfer" ? "bg-white dark:bg-black shadow-sm text-blue-500" : "text-muted-foreground"
@@ -453,6 +487,55 @@ export function AddTransactionDialog({
                         >
                             <ArrowRightLeft className="h-4 w-4" />
                             Transfer
+                        </button>
+                    </div>
+
+                    <div className="flex gap-2 mt-4">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!isLent) {
+                                    const lentCat = categories.find(c => c.name.toLowerCase() === 'lend');
+                                    if (lentCat) {
+                                        setType("expense");
+                                        setSelectedCategory(lentCat.id);
+                                    }
+                                } else {
+                                    setSelectedCategory("");
+                                }
+                            }}
+                            className={cn(
+                                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border-2",
+                                isLent
+                                    ? "bg-indigo-500 border-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                                    : "bg-gray-100 dark:bg-white/5 border-transparent text-muted-foreground hover:bg-indigo-500/10 hover:text-indigo-500"
+                            )}
+                        >
+                            <Handshake className="h-3.5 w-3.5" />
+                            Lend
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!isBorrow) {
+                                    const borrowCat = categories.find(c => c.name.toLowerCase() === 'borrow');
+                                    if (borrowCat) {
+                                        setType("income");
+                                        setSelectedCategory(borrowCat.id);
+                                    }
+                                } else {
+                                    setSelectedCategory("");
+                                }
+                            }}
+                            className={cn(
+                                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border-2",
+                                isBorrow
+                                    ? "bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20"
+                                    : "bg-gray-100 dark:bg-white/5 border-transparent text-muted-foreground hover:bg-amber-500/10 hover:text-amber-500"
+                            )}
+                        >
+                            <Unplug className="h-3.5 w-3.5" />
+                            Borrow
                         </button>
                     </div>
 
@@ -521,7 +604,7 @@ export function AddTransactionDialog({
                                 </div>
                             )}
 
-                            {type === 'expense' && (
+                            {type === 'expense' && !isLent && (
                                 <div className={cn(
                                     "flex items-center justify-between p-3 rounded-2xl border transition-colors duration-300 mb-2",
                                     selectedCategory && categories.find(c => c.id === selectedCategory)?.name.toLowerCase() === 'zakat'
@@ -585,8 +668,16 @@ export function AddTransactionDialog({
                             {type !== 'transfer' && (
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center mb-1">
-                                        <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Category</label>
-                                        {!isCreatingCategory && (
+                                        <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                            Category
+                                            {(isLent || isBorrow) && (
+                                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[8px] font-black uppercase tracking-tighter border border-primary/20 animate-in zoom-in duration-300">
+                                                    <ShieldCheck className="h-2 w-2" />
+                                                    Fixed
+                                                </span>
+                                            )}
+                                        </label>
+                                        {!isCreatingCategory && !(isLent || isBorrow) && (
                                             <button
                                                 type="button"
                                                 onClick={() => {
@@ -647,6 +738,7 @@ export function AddTransactionDialog({
                                                 }}
                                                 createLabel="Add category"
                                                 onDelete={handleDeleteCategory}
+                                                disabled={isLent || isBorrow}
                                             />
                                             <input type="hidden" name="category_id" value={selectedCategory} required />
                                         </>
@@ -665,7 +757,7 @@ export function AddTransactionDialog({
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 className="w-full h-12 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-4 focus:ring-2 focus:ring-primary outline-none font-medium"
-                                placeholder="Describe your transaction"
+                                placeholder={isLent ? "Whom did you lend to?" : isBorrow ? "Whom did you borrow from?" : "Describe your transaction"}
                             />
                         </div>
 

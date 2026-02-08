@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { getCurrencySymbol } from "@/lib/utils";
 import { getProfile } from "@/services/profile";
 import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
-import { getLiabilitiesData } from "@/app/actions/finance";
+import { getLiabilitiesData, getLentData } from "@/app/actions/finance";
 
 export default async function DashboardPage() {
     const session = await getSession();
@@ -17,12 +17,13 @@ export default async function DashboardPage() {
     const { user } = session;
 
     // Fetch all data in parallel
-    const [expenses, accounts, categories, profile, liabilitiesResponse] = await Promise.all([
+    const [expenses, accounts, categories, profile, liabilitiesResponse, lentResponse] = await Promise.all([
         getExpenses().catch(() => []),
         getAccounts().catch(() => []),
         getCategories().catch(() => []),
         getProfile().catch(() => null),
-        getLiabilitiesData().catch(() => ({ liabilities: [], calculate: false }))
+        getLiabilitiesData().catch(() => ({ liabilities: [], calculate: false })),
+        getLentData().catch(() => ({ lent: [], calculate: false }))
     ]);
 
     const greeting = profile?.display_name
@@ -51,6 +52,8 @@ export default async function DashboardPage() {
             zakatTarget={profile?.zakat_target || 0}
             liabilities={liabilitiesResponse?.liabilities || []}
             calculateLiabilities={liabilitiesResponse?.calculate || false}
+            lent={lentResponse?.lent || []}
+            calculateLent={lentResponse?.calculate || false}
         />
     );
 }

@@ -133,17 +133,17 @@ export async function createTransaction(formData: FormData) {
     }
 
     // 2. Insert transaction
-    const { error: txError } = await supabase.from("expenses").insert({
+    const { data: resultInsert, error: txError } = await supabase.from("expenses").insert({
         ...transaction,
         user_id: session.user.id,
-    });
+    }).select('id');
 
     if (txError) {
         console.error("Tx Database error:", txError);
         return { error: `Failed to record transaction: ${txError.message}` };
     }
 
-    // 3. Update balance
+    // 4. Update balance
     if (transaction.type === "transfer") {
         // Decrement source
         await supabase
@@ -178,6 +178,56 @@ export async function createTransaction(formData: FormData) {
 
         if (updateError) {
             console.error("Balance update error:", updateError);
+        }
+    }
+
+    // 5. Sync with Lent/Liabilities if applicable
+    if (transaction.category_id) {
+        const { data: category } = await supabase
+            .from("categories")
+            .select("name")
+            .eq("id", transaction.category_id)
+            .single();
+
+        if (category) {
+            const catName = category.name.toLowerCase();
+            if (catName === 'lent' || catName === 'liabilities' || catName === 'lend' || catName === 'borrow') {
+                const isLent = catName === 'lent' || catName === 'lend';
+                const field = isLent ? "lent_data" : "liabilities_data";
+
+                const { data: profile } = await supabase
+                    .from("profiles")
+                    .select(field)
+                    .eq("id", session.user.id)
+                    .single();
+
+                if (profile) {
+                    let rawData = (profile as any)[field];
+                    let currentData: any = { [isLent ? "lent" : "liabilities"]: [], calculate: false };
+
+                    if (rawData && typeof rawData === 'object' && 'encrypted' in rawData) {
+                        currentData = JSON.parse(decrypt(rawData.encrypted));
+                    } else if (rawData) {
+                        currentData = rawData;
+                    }
+
+                    const list = isLent ? currentData.lent : currentData.liabilities;
+                    list.push({
+                        id: crypto.randomUUID(),
+                        [isLent ? "person" : "source"]: transaction.description ? decrypt(transaction.description) : "Untitled",
+                        amount: originalAmount.toString(),
+                        linked_tx_id: resultInsert?.[0]?.id
+                    });
+
+                    await supabase
+                        .from("profiles")
+                        .update({
+                            [field]: { encrypted: encrypt(JSON.stringify(currentData)) },
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq("id", session.user.id);
+                }
+            }
         }
     }
 
@@ -315,6 +365,68 @@ export async function updateTransaction(id: string, formData: FormData) {
         }
     }
 
+    // 6. Sync with Lent/Liabilities if applicable
+    const oldCatId = oldTx.category_id;
+    const newCatId = updatedData.category_id;
+
+    if (oldCatId || newCatId) {
+        // Fetch category names
+        const { data: oldCat } = oldCatId ? await supabase.from("categories").select("name").eq("id", oldCatId).single() : { data: null };
+        const { data: newCat } = newCatId ? await supabase.from("categories").select("name").eq("id", newCatId).single() : { data: null };
+
+        const oldName = oldCat?.name?.toLowerCase() || "";
+        const newName = newCat?.name?.toLowerCase() || "";
+
+        const wasSynced = oldName === 'lent' || oldName === 'liabilities' || oldName === 'lend' || oldName === 'borrow';
+        const isSynced = newName === 'lent' || newName === 'liabilities' || newName === 'lend' || newName === 'borrow';
+
+        if (wasSynced || isSynced) {
+            const userId = session.user.id;
+
+            // If it was synced and now isn't, or category changed between Lent and Liabilities, remove from old
+            if (wasSynced && (oldName !== newName)) {
+                const isOldLent = oldName === 'lent' || oldName === 'lend';
+                const prevField = isOldLent ? "lent_data" : "liabilities_data";
+                const { data: p } = await supabase.from("profiles").select(prevField).eq("id", userId).single();
+                if (p) {
+                    let d = (p as any)[prevField];
+                    let currentData = d && typeof d === 'object' && 'encrypted' in d ? JSON.parse(decrypt(d.encrypted)) : (d || { [isOldLent ? "lent" : "liabilities"]: [], calculate: false });
+                    const lk = isOldLent ? "lent" : "liabilities";
+                    currentData[lk] = currentData[lk].filter((item: any) => item.linked_tx_id !== id);
+                    await supabase.from("profiles").update({ [prevField]: { encrypted: encrypt(JSON.stringify(currentData)) }, updated_at: new Date().toISOString() }).eq("id", userId);
+                }
+            }
+
+            // If it is synced (new or updated)
+            if (isSynced) {
+                const isNewLent = newName === 'lent' || newName === 'lend';
+                const field = isNewLent ? "lent_data" : "liabilities_data";
+                const { data: p } = await supabase.from("profiles").select(field).eq("id", userId).single();
+                if (p) {
+                    let d = (p as any)[field];
+                    let currentData = d && typeof d === 'object' && 'encrypted' in d ? JSON.parse(decrypt(d.encrypted)) : (d || { [isNewLent ? "lent" : "liabilities"]: [], calculate: false });
+                    const lk = isNewLent ? "lent" : "liabilities";
+
+                    const existingIndex = currentData[lk].findIndex((item: any) => item.linked_tx_id === id);
+                    const entryData = {
+                        id: existingIndex >= 0 ? currentData[lk][existingIndex].id : crypto.randomUUID(),
+                        [isNewLent ? "person" : "source"]: validatedFields.data.description || "Untitled",
+                        amount: newAmount.toString(),
+                        linked_tx_id: id
+                    };
+
+                    if (existingIndex >= 0) {
+                        currentData[lk][existingIndex] = entryData;
+                    } else {
+                        currentData[lk].push(entryData);
+                    }
+
+                    await supabase.from("profiles").update({ [field]: { encrypted: encrypt(JSON.stringify(currentData)) }, updated_at: new Date().toISOString() }).eq("id", userId);
+                }
+            }
+        }
+    }
+
     revalidatePath("/");
     return { success: true };
 }
@@ -349,13 +461,39 @@ export async function deleteTransaction(id: string) {
     // 1. Get transaction details to adjust balance
     const { data: tx, error: fetchError } = await supabase
         .from("expenses")
-        .select("amount, type, account_id, to_account_id")
+        .select("amount, type, account_id, to_account_id, category_id")
         .eq("id", id)
         .single();
 
     if (fetchError || !tx) return { error: "Transaction not found" };
 
-    // 2. Delete transaction
+    // 4. Sync removal from Lent/Liabilities
+    if (tx.category_id) {
+        const { data: category } = await supabase.from("categories").select("name").eq("id", tx.category_id).single();
+        if (category) {
+            const catName = category.name.toLowerCase();
+            if (catName === 'lent' || catName === 'liabilities' || catName === 'lend' || catName === 'borrow') {
+                const isLent = catName === 'lent' || catName === 'lend';
+                const field = isLent ? "lent_data" : "liabilities_data";
+                const { data: profile } = await supabase.from("profiles").select(field).eq("id", session.user.id).single();
+                if (profile) {
+                    let rawData = (profile as any)[field];
+                    let currentData = rawData && typeof rawData === 'object' && 'encrypted' in rawData
+                        ? JSON.parse(decrypt(rawData.encrypted)) : (rawData || { [isLent ? "lent" : "liabilities"]: [], calculate: false });
+
+                    const listKey = isLent ? "lent" : "liabilities";
+                    currentData[listKey] = currentData[listKey].filter((item: any) => item.linked_tx_id !== id);
+
+                    await supabase.from("profiles").update({
+                        [field]: { encrypted: encrypt(JSON.stringify(currentData)) },
+                        updated_at: new Date().toISOString()
+                    }).eq("id", session.user.id);
+                }
+            }
+        }
+    }
+
+    // 2. Delete transaction from expenses table
     const { error: deleteError } = await supabase
         .from("expenses")
         .delete()
@@ -367,21 +505,21 @@ export async function deleteTransaction(id: string) {
         return { error: "Failed to delete transaction" };
     }
 
-    // 3. Revert balance
-    const amount = Number(decrypt(tx.amount));
+    // 3. Revert balance on associated account(s)
+    const amountOrig = Number(decrypt(tx.amount));
     if (tx.type === "transfer") {
         // Revert source (increment back)
         if (tx.account_id) {
             const { data: srcAcc } = await supabase.from("accounts").select("balance").eq("id", tx.account_id).single();
             if (srcAcc) {
-                await supabase.from("accounts").update({ balance: srcAcc.balance + amount }).eq("id", tx.account_id);
+                await supabase.from("accounts").update({ balance: srcAcc.balance + amountOrig }).eq("id", tx.account_id);
             }
         }
         // Revert destination (decrement back)
-        if ((tx as any).to_account_id) {
-            const { data: destAcc } = await supabase.from("accounts").select("balance").eq("id", (tx as any).to_account_id).single();
+        if (tx.to_account_id) {
+            const { data: destAcc } = await supabase.from("accounts").select("balance").eq("id", tx.to_account_id).single();
             if (destAcc) {
-                await supabase.from("accounts").update({ balance: destAcc.balance - amount }).eq("id", (tx as any).to_account_id);
+                await supabase.from("accounts").update({ balance: destAcc.balance - amountOrig }).eq("id", tx.to_account_id);
             }
         }
     } else if (tx.account_id) {
@@ -392,13 +530,13 @@ export async function deleteTransaction(id: string) {
             .single();
 
         if (account) {
-            const newBalance = tx.type === "income"
-                ? Number(account.balance) - amount
-                : Number(account.balance) + amount;
+            const newBalanceValue = tx.type === "income"
+                ? Number(account.balance) - amountOrig
+                : Number(account.balance) + amountOrig;
 
             await supabase
                 .from("accounts")
-                .update({ balance: newBalance })
+                .update({ balance: newBalanceValue })
                 .eq("id", tx.account_id);
         }
     }
@@ -1007,6 +1145,75 @@ export async function updateLiabilitiesData(liabilities: any[], calculate: boole
     if (error) {
         console.error("Liabilities update error:", error);
         return { error: `Failed to update liabilities: ${error.message}` };
+    }
+
+    revalidatePath("/");
+    return { success: true };
+}
+
+export async function getLentData() {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+        .from("profiles")
+        .select("lent_data")
+        .eq("id", session.user.id)
+        .single();
+
+    if (error) {
+        console.error("Lent money fetch error:", error);
+        return { success: true, lent: [], calculate: false };
+    }
+
+    let rawData = data?.lent_data;
+    if (!rawData) return { success: true, lent: [], calculate: false };
+
+    try {
+        if (typeof rawData === 'object' && 'encrypted' in rawData) {
+            const decrypted = decrypt(rawData.encrypted);
+            const parsed = JSON.parse(decrypted);
+            return {
+                success: true,
+                lent: parsed.lent || [],
+                calculate: parsed.calculate || false
+            };
+        }
+        return {
+            success: true,
+            lent: rawData.lent || [],
+            calculate: rawData.calculate || false
+        };
+    } catch (e) {
+        console.error("Failed to parse lent money data:", e);
+        return { success: true, lent: [], calculate: false };
+    }
+}
+
+export async function updateLentData(lent: any[], calculate: boolean) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    const cleanData = { lent, calculate };
+    const encryptedData = {
+        encrypted: encrypt(JSON.stringify(cleanData))
+    };
+
+    const { error } = await supabase
+        .from("profiles")
+        .update({
+            lent_data: encryptedData,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", session.user.id);
+
+    if (error) {
+        console.error("Lent money update error:", error);
+        return { error: `Failed to update lent money: ${error.message}` };
     }
 
     revalidatePath("/");
