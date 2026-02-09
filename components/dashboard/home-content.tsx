@@ -393,7 +393,7 @@ export function HomeContent({
                             </div>
                         </CardHeader>
                         <CardContent className="p-4 pt-0">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[650px] overflow-y-auto custom-scrollbar smooth-scroll pr-2 pb-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[650px] overflow-y-auto smooth-scroll pr-2 pb-4">
                                 {accounts.length === 0 ? (
                                     <div className="col-span-1 sm:col-span-2 text-center py-12 opacity-30 italic text-sm">
                                         No accounts added yet.

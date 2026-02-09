@@ -124,7 +124,7 @@ export function LedgerList({ expenses, accounts, currencySymbol, maxHeight = "45
                         }
                     }
                 }}
-                className={cn("space-y-2 overflow-y-auto custom-scrollbar smooth-scroll pr-2 flex-1")}
+                className={cn("space-y-2 overflow-y-auto smooth-scroll pr-2 flex-1")}
                 style={{ maxHeight }}
             >
                 <AnimatePresence mode="popLayout">

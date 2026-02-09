@@ -21,18 +21,42 @@ export async function getProfile() {
 
     if (data) {
         if (data.zakat_target != null) {
-            data.zakat_target = decryptNumber(data.zakat_target);
+            try {
+                // Try to parse as multi-year JSON
+                const targets = JSON.parse(data.zakat_target);
+                if (typeof targets === 'object' && targets !== null) {
+                    const currentYear = new Date().getFullYear().toString();
+                    data.zakat_target = decryptNumber(targets[currentYear] || 0);
+                } else {
+                    data.zakat_target = decryptNumber(data.zakat_target);
+                }
+            } catch (e) {
+                // Fallback to legacy single value
+                data.zakat_target = decryptNumber(data.zakat_target);
+            }
         }
 
         if (data.zakat_breakdown) {
             let breakdown = data.zakat_breakdown;
             try {
+                let fullBreakdown: any = {};
                 if (typeof breakdown === 'object' && 'encrypted' in breakdown) {
-                    const decryptedValue = decrypt(breakdown.encrypted);
-                    data.zakat_breakdown = JSON.parse(decryptedValue);
+                    fullBreakdown = JSON.parse(decrypt(breakdown.encrypted));
                 } else if (typeof breakdown === 'string') {
-                    const decryptedValue = decrypt(breakdown);
-                    data.zakat_breakdown = JSON.parse(decryptedValue);
+                    fullBreakdown = JSON.parse(decrypt(breakdown));
+                }
+
+                // If it's the new multi-year format, extract the current year
+                if (fullBreakdown && typeof fullBreakdown === 'object') {
+                    const currentYear = new Date().getFullYear().toString();
+                    if (fullBreakdown[currentYear]) {
+                        data.zakat_breakdown = fullBreakdown[currentYear];
+                    } else if (fullBreakdown.cashInHand !== undefined) {
+                        // Legacy format
+                        data.zakat_breakdown = fullBreakdown;
+                    } else {
+                        data.zakat_breakdown = {};
+                    }
                 }
             } catch (e) {
                 console.error("Failed to decrypt zakat_breakdown in profile:", e);

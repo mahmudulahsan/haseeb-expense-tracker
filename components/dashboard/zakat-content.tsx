@@ -8,6 +8,14 @@ import { cn } from "@/lib/utils";
 import { updateZakatTarget, getZakatBreakdown, updateZakatBreakdown } from "@/app/actions/finance";
 import { Button } from "@/components/ui/button";
 import { Loader2, Check, Trash2 } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Calendar } from "lucide-react";
 import { parseLocalDate } from "@/lib/date-utils";
 import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
@@ -76,6 +84,11 @@ export function ZakatContent({
     expenses?: any[];
     categories?: any[];
 }) {
+    const currentYear = new Date().getFullYear().toString();
+    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [availableYears, setAvailableYears] = useState<string[]>([currentYear]);
+    const [yearTarget, setYearTarget] = useState(zakatTarget);
+
     // Form State with Persistence
     const initialState = {
         cashInHand: "",
@@ -89,6 +102,7 @@ export function ZakatContent({
         businessSavings: "",
         businessInventory: "",
         pensionIncome: "",
+        receivingCapital: "", // Renamed from otherCapital if needed or just keep consistent
         receivables: "",
         otherCapital: "",
         agricultureIncome: "",
@@ -102,30 +116,41 @@ export function ZakatContent({
     const [form, setForm] = useState(initialState);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    useEffect(() => {
-        async function loadData() {
-            const result = await getZakatBreakdown();
-            if (result.success && result.breakdown) {
-                // Combine with initialState to ensure all fields exist
+    const loadData = async (year: string) => {
+        setIsLoaded(false);
+        const result = await getZakatBreakdown(year);
+        if (result.success) {
+            if (result.breakdown) {
                 const fullBreakdown = { ...initialState, ...result.breakdown };
                 setForm(fullBreakdown);
+            } else {
+                setForm(initialState);
             }
-            // Set isLoaded after a short delay to ensure React state has settled
-            // and avoid debouncedSave firing with partially updated state
-            setTimeout(() => setIsLoaded(true), 200);
+            if (result.target !== undefined) {
+                setYearTarget(result.target);
+            }
+            if (result.allYears) {
+                // Ensure current year is always in the list
+                const years = Array.from(new Set([...result.allYears, currentYear])).sort((a, b) => b.localeCompare(a));
+                setAvailableYears(years);
+            }
         }
-        loadData();
-    }, []);
+        setTimeout(() => setIsLoaded(true), 200);
+    };
 
-    const debouncedSave = useDebouncedCallback(async (data) => {
-        await updateZakatBreakdown(data);
+    useEffect(() => {
+        loadData(selectedYear);
+    }, [selectedYear]);
+
+    const debouncedSave = useDebouncedCallback(async (data: any, year: string) => {
+        await updateZakatBreakdown(data, year);
     }, 1000);
 
     useEffect(() => {
         if (isLoaded) {
-            debouncedSave(form);
+            debouncedSave(form, selectedYear);
         }
-    }, [form, isLoaded, debouncedSave]);
+    }, [form, isLoaded, debouncedSave, selectedYear]);
 
     const updateField = (field: keyof typeof initialState, value: string) => {
         setForm(prev => ({ ...prev, [field]: value }));
@@ -206,9 +231,9 @@ export function ZakatContent({
     const zakatAmount = netWealth * 0.025;
 
     const zakatStats = useMemo(() => {
-        if (zakatTarget <= 0) return null;
+        if (yearTarget <= 0) return null;
 
-        const currentYear = new Date().getFullYear();
+        const targetYearNum = parseInt(selectedYear);
         const zakatCategoryIds = categories
             .filter(c => c.name.toLowerCase().includes("zakat"))
             .map(c => c.id);
@@ -218,26 +243,27 @@ export function ZakatContent({
                 const isZakat = zakatCategoryIds.includes(e.category_id);
                 if (!isZakat) return false;
                 const expenseDate = typeof e.date === 'string' ? parseLocalDate(e.date) : e.date;
-                return expenseDate.getFullYear() === currentYear;
+                return expenseDate.getFullYear() === targetYearNum;
             })
             .reduce((acc, curr) => acc + curr.amount, 0);
 
-        const progress = Math.min(100, (paid / zakatTarget) * 100);
-        const remaining = Math.max(0, zakatTarget - paid);
+        const progress = Math.min(100, (paid / yearTarget) * 100);
+        const remaining = Math.max(0, yearTarget - paid);
 
-        return { paid, progress, remaining, currentYear };
-    }, [expenses, categories, zakatTarget]);
+        return { paid, progress, remaining, currentYear: selectedYear };
+    }, [expenses, categories, yearTarget, selectedYear]);
 
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
 
     const handleSaveToDashboard = async () => {
         setIsSaving(true);
-        const result = await updateZakatTarget(zakatAmount);
+        const result = await updateZakatTarget(zakatAmount, selectedYear);
         setIsSaving(false);
         if (result.success) {
             setSaveSuccess(true);
-            toast.success("Zakat target updated successfully");
+            setYearTarget(zakatAmount);
+            toast.success(`Zakat target for ${selectedYear} updated successfully`);
             setTimeout(() => setSaveSuccess(false), 3000);
         } else {
             toast.error(result.error);
@@ -254,7 +280,30 @@ export function ZakatContent({
                             <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
                                 <HandHeart className="h-6 w-6 text-white" />
                             </div>
-                            <h1 className="text-3xl font-black tracking-tighter">Zakat Calculator {new Date().getFullYear()}</h1>
+                            <div className="flex flex-col">
+                                <h1 className="text-3xl font-black tracking-tighter">Zakat Calculator {selectedYear}</h1>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <Calendar className="h-3 w-3 text-primary/60" />
+                                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+                                        <SelectTrigger className="h-6 bg-transparent border-none p-0 text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors w-fit focus:ring-0">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-xl border-none shadow-2xl bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5">
+                                            {availableYears.map(year => (
+                                                <SelectItem key={year} value={year} className="text-[10px] font-bold uppercase tracking-widest rounded-lg">
+                                                    Year {year}
+                                                </SelectItem>
+                                            ))}
+                                            {/* Support for adding a new year if it's not in the list */}
+                                            {!availableYears.includes((new Date().getFullYear() + 1).toString()) && (
+                                                <SelectItem value={(new Date().getFullYear() + 1).toString()} className="text-[10px] font-bold uppercase tracking-widest rounded-lg text-primary/60">
+                                                    Year {(new Date().getFullYear() + 1).toString()}
+                                                </SelectItem>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
                         </div>
                         <p className="text-sm font-medium text-muted-foreground max-w-xl">
                             Provide your asset information for the whole year to calculate your Zakat.
@@ -373,12 +422,13 @@ export function ZakatContent({
                                     <div className="bg-white/5 rounded-3xl p-5 border border-white/10 flex items-center justify-between gap-4">
                                         <div className="space-y-3">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Active Target ({zakatStats.currentYear})</span>
+                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Active Target ({selectedYear})</span>
                                                 <button
                                                     onClick={async () => {
-                                                        if (confirm("Are you sure you want to reset your Zakat target?")) {
-                                                            const result = await updateZakatTarget(0);
+                                                        if (confirm(`Are you sure you want to reset your Zakat target for ${selectedYear}?`)) {
+                                                            const result = await updateZakatTarget(0, selectedYear);
                                                             if (result.success) {
+                                                                setYearTarget(0);
                                                                 toast.success("Zakat target reset successfully");
                                                             } else {
                                                                 toast.error(result.error);

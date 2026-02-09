@@ -694,55 +694,69 @@ export async function signUserOut() {
     redirect("/login");
 }
 
-export async function getZakatBreakdown() {
+export async function getZakatBreakdown(year?: string) {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };
 
     const supabase = createAdminClient();
 
-    const { data, error } = await supabase
+    const { data: profile, error } = await supabase
         .from("profiles")
-        .select("zakat_breakdown")
+        .select("zakat_breakdown, zakat_target")
         .eq("id", session.user.id)
         .single();
 
     if (error) {
-        console.error("Zakat breakdown fetch error:", error);
-        return { error: `Failed to fetch zakat breakdown: ${error.message}` };
+        console.error("Zakat data fetch error:", error);
+        return { error: `Failed to fetch zakat data: ${error.message}` };
     }
 
-    let rawBreakdown = data?.zakat_breakdown;
-    if (!rawBreakdown) return { success: true, breakdown: {} };
+    let rawBreakdown = profile?.zakat_breakdown;
+    let rawTarget = profile?.zakat_target;
 
-    try {
-        // Case 1: Encrypted object wrapper { encrypted: "..." }
-        if (typeof rawBreakdown === 'object' && 'encrypted' in rawBreakdown) {
-            const decrypted = decrypt(rawBreakdown.encrypted);
-            // If decrypt returns the same string, it failed or was not encrypted
-            if (decrypted === rawBreakdown.encrypted && decrypted.startsWith('v2:')) {
-                console.error("Zakat breakdown: v2 decryption failed (missing/wrong vault key)");
-                return { success: true, breakdown: {} };
+    const currentYear = year || new Date().getFullYear().toString();
+
+    // 1. Process Breakdown
+    let fullBreakdown: any = {};
+    if (rawBreakdown) {
+        try {
+            if (typeof rawBreakdown === 'object' && 'encrypted' in rawBreakdown) {
+                fullBreakdown = JSON.parse(decrypt(rawBreakdown.encrypted));
+            } else if (typeof rawBreakdown === 'string') {
+                fullBreakdown = JSON.parse(decrypt(rawBreakdown));
+            } else {
+                fullBreakdown = rawBreakdown;
             }
-            return { success: true, breakdown: JSON.parse(decrypted) };
+        } catch (e) {
+            fullBreakdown = {};
         }
-
-        // Case 2: Legacy encrypted string
-        if (typeof rawBreakdown === 'string') {
-            const decrypted = decrypt(rawBreakdown);
-            try {
-                return { success: true, breakdown: JSON.parse(decrypted) };
-            } catch {
-                // Not valid JSON after decryption, return empty
-                return { success: true, breakdown: {} };
-            }
-        }
-
-        // Case 3: Already an object (plaintext)
-        return { success: true, breakdown: rawBreakdown };
-    } catch (e) {
-        console.error("Failed to parse zakat breakdown:", e);
-        return { success: true, breakdown: {} };
     }
+
+    // Migration: If existing data is old format
+    if (fullBreakdown.cashInHand !== undefined || fullBreakdown.cashInBank !== undefined) {
+        fullBreakdown = { [new Date().getFullYear().toString()]: fullBreakdown };
+    }
+
+    // 2. Process Target
+    let fullTargets: any = {};
+    if (rawTarget) {
+        try {
+            fullTargets = JSON.parse(rawTarget);
+            if (typeof fullTargets !== 'object') throw new Error();
+        } catch {
+            // Old format
+            fullTargets = { [new Date().getFullYear().toString()]: rawTarget };
+        }
+    }
+
+    const yearTarget = fullTargets[currentYear] ? Number(decrypt(fullTargets[currentYear])) : 0;
+
+    return {
+        success: true,
+        breakdown: fullBreakdown[currentYear] || {},
+        target: yearTarget,
+        allYears: Object.keys(fullBreakdown).sort((a, b) => b.localeCompare(a))
+    };
 }
 
 function BreakdownIsJSON(str: string) {
@@ -754,21 +768,51 @@ function BreakdownIsJSON(str: string) {
     }
 }
 
-export async function updateZakatBreakdown(breakdown: any) {
+export async function updateZakatBreakdown(breakdown: any, year?: string) {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };
 
     const supabase = createAdminClient();
+    const currentYear = year || new Date().getFullYear().toString();
 
-    // Sanitize: verify breakdown is an object and remove 'encrypted' key if it snuck in
-    const cleanBreakdown = { ...breakdown };
-    if ('encrypted' in cleanBreakdown) {
-        delete cleanBreakdown.encrypted;
+    // 1. Get existing breakdown to merge
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("zakat_breakdown")
+        .eq("id", session.user.id)
+        .single();
+
+    let fullBreakdown: any = {};
+    if (profile?.zakat_breakdown) {
+        let raw = profile.zakat_breakdown;
+        try {
+            if (typeof raw === 'object' && 'encrypted' in raw) {
+                fullBreakdown = JSON.parse(decrypt(raw.encrypted));
+            } else if (typeof raw === 'string') {
+                fullBreakdown = JSON.parse(decrypt(raw));
+            } else {
+                fullBreakdown = raw;
+            }
+        } catch (e) {
+            fullBreakdown = {};
+        }
     }
 
-    // Encrypt the breakdown data and wrap in object
+    // 2. Migration: If existing data is old format, move it to its year
+    if (fullBreakdown.cashInHand !== undefined || fullBreakdown.cashInBank !== undefined) {
+        const oldYear = new Date().getFullYear().toString();
+        fullBreakdown = { [oldYear]: { ...fullBreakdown } };
+    }
+
+    // 3. Update the specific year
+    const cleanBreakdown = { ...breakdown };
+    if ('encrypted' in cleanBreakdown) delete cleanBreakdown.encrypted;
+
+    fullBreakdown[currentYear] = cleanBreakdown;
+
+    // 4. Encrypt and save
     const encryptedBreakdown = {
-        encrypted: encrypt(JSON.stringify(cleanBreakdown))
+        encrypted: encrypt(JSON.stringify(fullBreakdown))
     };
 
     const { error } = await supabase
@@ -789,20 +833,45 @@ export async function updateZakatBreakdown(breakdown: any) {
 }
 
 
-export async function updateZakatTarget(amount: number) {
+export async function updateZakatTarget(amount: number, year?: string) {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };
 
     const supabase = createAdminClient();
+    const currentYear = year || new Date().getFullYear().toString();
 
-    // Encrypt the amount
-    const encryptedTarget = encrypt(amount);
+    // 1. Get existing target
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("zakat_target")
+        .eq("id", session.user.id)
+        .single();
+
+    let targets: any = {};
+    if (profile?.zakat_target) {
+        try {
+            // Check if it's already a JSON (multi-year)
+            const parsed = JSON.parse(profile.zakat_target);
+            if (typeof parsed === 'object') {
+                targets = parsed;
+            } else {
+                throw new Error("Not an object");
+            }
+        } catch (e) {
+            // It's a single year target (encrypted string or number)
+            const oldTargetValue = profile.zakat_target;
+            const oldYear = new Date().getFullYear().toString();
+            targets = { [oldYear]: oldTargetValue };
+        }
+    }
+
+    // 2. Update the specific year (store it encrypted)
+    targets[currentYear] = encrypt(amount);
 
     const { error } = await supabase
         .from("profiles")
         .update({
-            // @ts-ignore: Assuming DB column is now text
-            zakat_target: encryptedTarget,
+            zakat_target: JSON.stringify(targets),
             updated_at: new Date().toISOString(),
         })
         .eq("id", session.user.id);
