@@ -53,13 +53,7 @@ export async function getCategories() {
         return [];
     }
 
-    // 2. Fetch user targets
-    const { data: targets } = await supabase
-        .from("category_targets")
-        .select("category_id, target")
-        .eq("user_id", session.user.id);
-
-    // 3. Deduplicate categories by name, prioritizing user-specific ones
+    // 2. Deduplicate categories by name, prioritizing user-specific ones
     const deduplicated = categories.reduce((acc: any[], current: any) => {
         const existing = acc.find(c => c.name.toLowerCase() === current.name.toLowerCase());
         if (!existing) {
@@ -72,15 +66,6 @@ export async function getCategories() {
         return acc;
     }, []);
 
-    // 4. Merge targets into categories
-    const categoriesWithTargets = deduplicated.map((cat: any) => {
-        const targetObj = targets?.find((t: any) => t.category_id === cat.id);
-        return {
-            ...cat,
-            monthly_target: targetObj ? Number(targetObj.target) : 0
-        };
-    });
-
-    return categoriesWithTargets;
+    return deduplicated;
 }
 

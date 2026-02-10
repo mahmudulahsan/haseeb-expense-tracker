@@ -8,17 +8,11 @@ import { cn } from "@/lib/utils";
 import { updateZakatTarget, getZakatBreakdown, updateZakatBreakdown } from "@/app/actions/finance";
 import { Button } from "@/components/ui/button";
 import { Loader2, Check, Trash2 } from "lucide-react";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { Calendar } from "lucide-react";
 import { parseLocalDate } from "@/lib/date-utils";
 import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
+import { Calendar } from "lucide-react";
+import { getZakatHistory } from "@/app/actions/finance";
 
 interface ZakatSectionProps {
     title: string;
@@ -84,11 +78,6 @@ export function ZakatContent({
     expenses?: any[];
     categories?: any[];
 }) {
-    const currentYear = new Date().getFullYear().toString();
-    const [selectedYear, setSelectedYear] = useState(currentYear);
-    const [availableYears, setAvailableYears] = useState<string[]>([currentYear]);
-    const [yearTarget, setYearTarget] = useState(zakatTarget);
-
     // Form State with Persistence
     const initialState = {
         cashInHand: "",
@@ -102,7 +91,6 @@ export function ZakatContent({
         businessSavings: "",
         businessInventory: "",
         pensionIncome: "",
-        receivingCapital: "", // Renamed from otherCapital if needed or just keep consistent
         receivables: "",
         otherCapital: "",
         agricultureIncome: "",
@@ -115,34 +103,45 @@ export function ZakatContent({
 
     const [form, setForm] = useState(initialState);
     const [isLoaded, setIsLoaded] = useState(false);
-
-    const loadData = async (year: string) => {
-        setIsLoaded(false);
-        const result = await getZakatBreakdown(year);
-        if (result.success) {
-            if (result.breakdown) {
-                const fullBreakdown = { ...initialState, ...result.breakdown };
-                setForm(fullBreakdown);
-            } else {
-                setForm(initialState);
-            }
-            if (result.target !== undefined) {
-                setYearTarget(result.target);
-            }
-            if (result.allYears) {
-                // Ensure current year is always in the list
-                const years = Array.from(new Set([...result.allYears, currentYear])).sort((a, b) => b.localeCompare(a));
-                setAvailableYears(years);
-            }
-        }
-        setTimeout(() => setIsLoaded(true), 200);
-    };
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+    const [yearlyTarget, setYearlyTarget] = useState(selectedYear === new Date().getFullYear().toString() ? zakatTarget : 0);
+    const [history, setHistory] = useState<any>({});
 
     useEffect(() => {
-        loadData(selectedYear);
+        async function loadData() {
+            // Fetch breakdown for specific year
+            const result = await getZakatBreakdown(selectedYear);
+            if (result.success) {
+                const fullBreakdown = { ...initialState, ...(result.breakdown || {}) };
+                setForm(fullBreakdown);
+                setYearlyTarget(result.target || 0);
+            }
+
+            // Fetch full history to know which years exist
+            const historyResult = await getZakatHistory();
+            if (historyResult.success) {
+                setHistory(historyResult.history);
+            }
+
+            setTimeout(() => setIsLoaded(true), 200);
+        }
+        loadData();
     }, [selectedYear]);
 
-    const debouncedSave = useDebouncedCallback(async (data: any, year: string) => {
+    const years = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        const availableYears = Object.keys(history).filter(y => /^\d{4}$/.test(y));
+        const allYears = Array.from(new Set([
+            (currentYear - 2).toString(),
+            (currentYear - 1).toString(),
+            currentYear.toString(),
+            (currentYear + 1).toString(),
+            ...availableYears
+        ])).sort((a, b) => Number(a) - Number(b));
+        return allYears;
+    }, [history]);
+
+    const debouncedSave = useDebouncedCallback(async (data, year) => {
         await updateZakatBreakdown(data, year);
     }, 1000);
 
@@ -231,9 +230,10 @@ export function ZakatContent({
     const zakatAmount = netWealth * 0.025;
 
     const zakatStats = useMemo(() => {
-        if (yearTarget <= 0) return null;
+        const targetToUse = yearlyTarget;
+        if (targetToUse <= 0) return null;
 
-        const targetYearNum = parseInt(selectedYear);
+        const targetYearNum = Number(selectedYear);
         const zakatCategoryIds = categories
             .filter(c => c.name.toLowerCase().includes("zakat"))
             .map(c => c.id);
@@ -247,11 +247,11 @@ export function ZakatContent({
             })
             .reduce((acc, curr) => acc + curr.amount, 0);
 
-        const progress = Math.min(100, (paid / yearTarget) * 100);
-        const remaining = Math.max(0, yearTarget - paid);
+        const progress = Math.min(100, (paid / targetToUse) * 100);
+        const remaining = Math.max(0, targetToUse - paid);
 
-        return { paid, progress, remaining, currentYear: selectedYear };
-    }, [expenses, categories, yearTarget, selectedYear]);
+        return { paid, progress, remaining, currentYear: targetYearNum };
+    }, [expenses, categories, yearlyTarget, selectedYear]);
 
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
@@ -262,7 +262,7 @@ export function ZakatContent({
         setIsSaving(false);
         if (result.success) {
             setSaveSuccess(true);
-            setYearTarget(zakatAmount);
+            setYearlyTarget(zakatAmount);
             toast.success(`Zakat target for ${selectedYear} updated successfully`);
             setTimeout(() => setSaveSuccess(false), 3000);
         } else {
@@ -275,38 +275,37 @@ export function ZakatContent({
             {/* Header / Info */}
             <div className="relative overflow-hidden rounded-[2rem] bg-primary/10 p-8 border border-primary/20">
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                         <div className="flex items-center gap-3">
                             <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
                                 <HandHeart className="h-6 w-6 text-white" />
                             </div>
-                            <div className="flex flex-col">
-                                <h1 className="text-3xl font-black tracking-tighter">Zakat Calculator {selectedYear}</h1>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <Calendar className="h-3 w-3 text-primary/60" />
-                                    <Select value={selectedYear} onValueChange={setSelectedYear}>
-                                        <SelectTrigger className="h-6 bg-transparent border-none p-0 text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors w-fit focus:ring-0">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl border-none shadow-2xl bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5">
-                                            {availableYears.map(year => (
-                                                <SelectItem key={year} value={year} className="text-[10px] font-bold uppercase tracking-widest rounded-lg">
-                                                    Year {year}
-                                                </SelectItem>
-                                            ))}
-                                            {/* Support for adding a new year if it's not in the list */}
-                                            {!availableYears.includes((new Date().getFullYear() + 1).toString()) && (
-                                                <SelectItem value={(new Date().getFullYear() + 1).toString()} className="text-[10px] font-bold uppercase tracking-widest rounded-lg text-primary/60">
-                                                    Year {(new Date().getFullYear() + 1).toString()}
-                                                </SelectItem>
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
+                            <h1 className="text-3xl font-black tracking-tighter">Zakat Calculator</h1>
                         </div>
+
+                        {/* Year Selector */}
+                        <div className="flex items-center gap-2 bg-white/40 dark:bg-white/5 p-1 rounded-2xl w-fit border border-white dark:border-white/5">
+                            {years.map(year => (
+                                <button
+                                    key={year}
+                                    onClick={() => {
+                                        setIsLoaded(false);
+                                        setSelectedYear(year);
+                                    }}
+                                    className={cn(
+                                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                                        selectedYear === year
+                                            ? "bg-white dark:bg-white/10 shadow-sm text-primary"
+                                            : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    {year}
+                                </button>
+                            ))}
+                        </div>
+
                         <p className="text-sm font-medium text-muted-foreground max-w-xl">
-                            Provide your asset information for the whole year to calculate your Zakat.
+                            Provide your asset information for <span className="text-foreground font-bold">{selectedYear}</span> to calculate your Zakat.
                         </p>
                     </div>
                     <div className="flex items-start gap-3 bg-white/50 dark:bg-black/20 backdrop-blur-md p-4 rounded-2xl border border-white dark:border-white/5 max-w-sm">
@@ -422,14 +421,14 @@ export function ZakatContent({
                                     <div className="bg-white/5 rounded-3xl p-5 border border-white/10 flex items-center justify-between gap-4">
                                         <div className="space-y-3">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Active Target ({selectedYear})</span>
+                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Target for {selectedYear}</span>
                                                 <button
                                                     onClick={async () => {
                                                         if (confirm(`Are you sure you want to reset your Zakat target for ${selectedYear}?`)) {
                                                             const result = await updateZakatTarget(0, selectedYear);
                                                             if (result.success) {
-                                                                setYearTarget(0);
-                                                                toast.success("Zakat target reset successfully");
+                                                                setYearlyTarget(0);
+                                                                toast.success(`Zakat target for ${selectedYear} reset successfully`);
                                                             } else {
                                                                 toast.error(result.error);
                                                             }
@@ -440,7 +439,7 @@ export function ZakatContent({
                                                     <Trash2 className="h-3.5 w-3.5" />
                                                 </button>
                                             </div>
-                                            <div className="text-2xl font-black">{currencySymbol}{zakatTarget.toLocaleString()}</div>
+                                            <div className="text-2xl font-black">{currencySymbol}{yearlyTarget.toLocaleString()}</div>
                                             <div className="flex items-center gap-2">
                                                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                                                 <span className="text-[10px] font-bold opacity-60 uppercase tracking-widest">
