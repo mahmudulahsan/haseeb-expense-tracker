@@ -658,6 +658,27 @@ export async function deleteCategory(id: string) {
     return { success: true };
 }
 
+export async function updateCategory(id: string, name: string) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+        .from("categories")
+        .update({ name })
+        .eq("id", id)
+        .eq("user_id", session.user.id);
+
+    if (error) {
+        console.error("Update category error:", error);
+        return { error: "Failed to update category" };
+    }
+
+    revalidatePath("/");
+    return { success: true };
+}
+
 export async function updateProfile(formData: FormData) {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };

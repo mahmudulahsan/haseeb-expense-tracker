@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronDown, Search, X, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Search, X, Plus, Trash2, Edit2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -15,6 +15,7 @@ interface SearchableSelectProps {
     onCreate?: (value: string) => void;
     createLabel?: string;
     onDelete?: (id: string) => void;
+    onEdit?: (id: string) => void;
     disabled?: boolean;
 }
 
@@ -28,6 +29,7 @@ export function SearchableSelect({
     onCreate,
     createLabel = "Create new",
     onDelete,
+    onEdit,
     disabled = false
 }: SearchableSelectProps) {
     const [open, setOpen] = React.useState(false);
@@ -165,7 +167,20 @@ export function SearchableSelect({
                                         }}
                                     >
                                         <span className="truncate flex-1">{opt.name}</span>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1">
+                                            {onEdit && opt.user_id && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onEdit(opt.id);
+                                                    }}
+                                                    className="opacity-0 group-hover/item:opacity-100 p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-all hover:scale-110"
+                                                    title="Edit category"
+                                                >
+                                                    <Edit2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            )}
                                             {onDelete && opt.user_id && (
                                                 <button
                                                     type="button"

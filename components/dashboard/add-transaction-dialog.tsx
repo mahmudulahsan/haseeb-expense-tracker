@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowUpCircle, ArrowDownCircle, Check, X, Mic, Loader2, Sparkles, ArrowRightLeft, ShieldCheck, Scale, Gem, HandHeart, Unplug, Handshake } from "lucide-react";
-import { createTransaction, updateTransaction, createCategory, parseVoiceTransaction, deleteCategory } from "@/app/actions/finance";
+import { createTransaction, updateTransaction, createCategory, parseVoiceTransaction, deleteCategory, updateCategory } from "@/app/actions/finance";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
@@ -285,6 +285,22 @@ export function AddTransactionDialog({
             if (selectedCategory === id) {
                 setSelectedCategory("");
             }
+            router.refresh();
+        } else {
+            toast.error(result.error);
+        }
+    }
+
+    async function handleEditCategory(id: string) {
+        const category = categories.find(c => c.id === id);
+        if (!category) return;
+
+        const newName = prompt("Enter new category name:", category.name);
+        if (!newName || newName === category.name) return;
+
+        const result = await updateCategory(id, newName);
+        if (result.success) {
+            toast.success("Category updated");
             router.refresh();
         } else {
             toast.error(result.error);
@@ -738,6 +754,7 @@ export function AddTransactionDialog({
                                                 }}
                                                 createLabel="Add category"
                                                 onDelete={handleDeleteCategory}
+                                                onEdit={handleEditCategory}
                                                 disabled={isLent || isBorrow}
                                             />
                                             <input type="hidden" name="category_id" value={selectedCategory} required />
