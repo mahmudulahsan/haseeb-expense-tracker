@@ -175,7 +175,7 @@ export function SearchableSelect({
                                                         e.stopPropagation();
                                                         onEdit(opt.id);
                                                     }}
-                                                    className="opacity-0 group-hover/item:opacity-100 p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-all hover:scale-110"
+                                                    className="p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-all hover:scale-110"
                                                     title="Edit category"
                                                 >
                                                     <Edit2 className="h-3.5 w-3.5" />
@@ -185,7 +185,7 @@ export function SearchableSelect({
                                                 <button
                                                     type="button"
                                                     onClick={(e) => handleDelete(e, opt.id)}
-                                                    className="opacity-0 group-hover/item:opacity-100 p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 transition-all hover:scale-110"
+                                                    className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 transition-all hover:scale-110"
                                                     title="Delete category"
                                                 >
                                                     <Trash2 className="h-3.5 w-3.5" />
