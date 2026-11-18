@@ -28,6 +28,10 @@ export async function POST(request: Request) {
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
+        if (process.env.NODE_ENV !== "production") {
+            console.log(`\n========================================\n[DEV OTP] Email: ${email} | Code: ${code}\n========================================\n`);
+        }
+
         // 2. Clear old OTPs for this email and save new one
         await supabase.from("auth_otps").delete().eq("email", email);
 
@@ -46,8 +50,9 @@ export async function POST(request: Request) {
 
         // 3. Send via Resend
         try {
-            await resend.emails.send({
-                from: "Haseeb <no-reply@ndevers.com>",
+            const fromEmail = process.env.EMAIL_FROM || "Haseeb <no-reply@trionslab.com>";
+            const { data, error: sendError } = await resend.emails.send({
+                from: fromEmail,
                 to: email,
                 subject: "Your Login Code - Haseeb",
                 html: `
@@ -66,6 +71,11 @@ export async function POST(request: Request) {
                     </div>
                 `,
             });
+
+            if (sendError) {
+                console.error("Resend Send Error:", sendError);
+                return NextResponse.json({ error: sendError.message || "Failed to send email via Resend." }, { status: 500 });
+            }
         } catch (resendError: any) {
             console.error("Resend Error:", resendError);
             return NextResponse.json({ error: "Failed to send email. Check your Resend API key." }, { status: 500 });
