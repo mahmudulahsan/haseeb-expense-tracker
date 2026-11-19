@@ -45,7 +45,7 @@ export default async function DashboardLayout({
 
             <footer className="w-full max-w-7xl mx-auto px-4 sm:px-8 pb-8 text-center">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 hover:text-primary transition-colors duration-500">
-                    Developed by <a href="https://ahsan-xp.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:underline">Mahmudul Ahsan</a>
+                    Developed by <a href="#" rel="noopener noreferrer" className="hover:underline">NextGen Innovators</a>
                 </p>
             </footer>
         </div>
