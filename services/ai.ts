@@ -15,15 +15,98 @@ export async function generateZhipuToken(apiKey: string) {
     return token;
 }
 
-export async function parseTransactionWithAI(text: string, categories: any[], accounts: any[], localDate?: string) {
-    const today = localDate || new Date().toISOString().split('T')[0];
+const CANDIDATE_MODELS = ["glm-4.5-flash", "glm-4.7-flash"];
+
+interface ChatOptions {
+    messages: Array<{ role: string; content: string }>;
+    temperature?: number;
+}
+
+function extractJson(content: string) {
+    const cleaned = content.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+
+    try {
+        return JSON.parse(cleaned);
+    } catch {
+        // Fallback: search for outermost { ... } or [ ... ]
+        const firstBrace = cleaned.indexOf("{");
+        const lastBrace = cleaned.lastIndexOf("}");
+        if (firstBrace !== -1 && lastBrace > firstBrace) {
+            try {
+                return JSON.parse(cleaned.substring(firstBrace, lastBrace + 1));
+            } catch {}
+        }
+
+        const firstBracket = cleaned.indexOf("[");
+        const lastBracket = cleaned.lastIndexOf("]");
+        if (firstBracket !== -1 && lastBracket > firstBracket) {
+            try {
+                return JSON.parse(cleaned.substring(firstBracket, lastBracket + 1));
+            } catch {}
+        }
+
+        throw new Error("AI returned invalid JSON format. Please try again.");
+    }
+}
+
+async function callZhipuChat(options: ChatOptions): Promise<string> {
     const apiKey = process.env.ZHIPU_AI_API_KEY;
     if (!apiKey) throw new Error("ZHIPU_AI_API_KEY is not set");
 
     const token = await generateZhipuToken(apiKey);
+    let lastError: any = null;
 
-    const categoryNames = categories.map(c => c.name).join(", ");
-    const accountNames = accounts.map(a => a.name).join(", ");
+    for (const model of CANDIDATE_MODELS) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const response = await fetch("https://open.bigmodel.cn/api/paas/v4/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        model,
+                        messages: options.messages,
+                        temperature: options.temperature ?? 0.1,
+                        thinking: { type: "disabled" }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const content = data.choices?.[0]?.message?.content;
+                    if (content) {
+                        return content;
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.warn(`Zhipu AI (${model}) attempt ${attempt + 1} status ${response.status}:`, errorText);
+                    lastError = new Error(`AI Service Error (${response.status}): ${errorText}`);
+
+                    // High traffic/rate limit (429 / code 1305) or server error: delay briefly before retry or switch to fallback
+                    if (response.status === 429 || response.status >= 500) {
+                        await new Promise((r) => setTimeout(r, 600));
+                        continue;
+                    }
+                    break;
+                }
+            } catch (err: any) {
+                console.warn(`Zhipu AI (${model}) network error:`, err);
+                lastError = err;
+                await new Promise((r) => setTimeout(r, 500));
+            }
+        }
+    }
+
+    throw lastError || new Error("AI service is currently busy. Please try again in a moment.");
+}
+
+export async function parseTransactionWithAI(text: string, categories: any[], accounts: any[], localDate?: string) {
+    const today = localDate || new Date().toISOString().split("T")[0];
+
+    const categoryNames = categories.map((c) => c.name).join(", ");
+    const accountNames = accounts.map((a) => a.name).join(", ");
 
     const systemPrompt = `You are a financial assistant for an app called Haseeb. Your goal is to extract transaction details from user voice transcripts. 
 Extract the following fields in JSON format:
@@ -41,52 +124,24 @@ Example: "I paid 500 for zakat" -> type: "expense", category: "Zakat", isZakat: 
 
 IMPORTANT: Output ONLY the raw JSON object. Do not include markdown code blocks or any other text.`;
 
-    const response = await fetch("https://open.bigmodel.cn/api/paas/v4/chat/completions", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-            model: "glm-4.7-flash",
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: text }
-            ],
-            temperature: 0.1
-        })
+    const content = await callZhipuChat({
+        messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: text }
+        ],
+        temperature: 0.1
     });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Zhipu AI Error Details:", errorText);
-        throw new Error(`AI Service Error (${response.status}): ${errorText}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0].message.content;
-
-    try {
-        // Strip markdown code blocks if present
-        const cleanedJSON = content.replace(/```json|```/g, "").trim();
-        return JSON.parse(cleanedJSON);
-    } catch (err) {
-        console.error("AI Response Parsing Error:", content);
-        throw new Error("AI returned invalid data format. Please try again.");
-    }
+    return extractJson(content);
 }
 
-export async function getSmartInsights(expenses: any[], categories: any[], currencySymbol: string = "$", localDate?: string, extraContext?: { zakat?: any, liabilities?: any }) {
-    const today = localDate || new Date().toISOString().split('T')[0];
-    const apiKey = process.env.ZHIPU_AI_API_KEY;
-    if (!apiKey) throw new Error("ZHIPU_AI_API_KEY is not set");
-
-    const token = await generateZhipuToken(apiKey);
+export async function getSmartInsights(expenses: any[], categories: any[], currencySymbol: string = "$", localDate?: string, extraContext?: { zakat?: any; liabilities?: any }) {
+    const today = localDate || new Date().toISOString().split("T")[0];
 
     // Prepare data summary for AI
     const categorySummary = expenses.reduce((acc: any, curr: any) => {
-        if (curr.type === 'expense') {
-            const catName = curr.categories?.name || 'Uncategorized';
+        if (curr.type === "expense") {
+            const catName = curr.categories?.name || "Uncategorized";
             acc[catName] = (acc[catName] || 0) + Number(curr.amount);
         }
         return acc;
@@ -95,7 +150,7 @@ export async function getSmartInsights(expenses: any[], categories: any[], curre
     const totalSpent = Object.values(categorySummary).reduce((a: any, b: any) => a + Number(b), 0);
 
     // Get a subset of transactions for context
-    const recentTransactions = expenses.slice(0, 15).map(tx => ({
+    const recentTransactions = expenses.slice(0, 15).map((tx) => ({
         amount: tx.amount,
         category: tx.categories?.name,
         description: tx.description,
@@ -129,39 +184,21 @@ Total Expenses: ${totalSpent}
 Spending by Category: ${JSON.stringify(categorySummary)}
 Recent Activity: ${JSON.stringify(recentTransactions)}
 Current Date: ${today}
-${extraContext?.zakat ? `Zakat Status: ${JSON.stringify(extraContext.zakat)}` : ''}
-${extraContext?.liabilities ? `Liabilities Info: ${JSON.stringify(extraContext.liabilities)}` : ''}`;
+${extraContext?.zakat ? `Zakat Status: ${JSON.stringify(extraContext.zakat)}` : ""}
+${extraContext?.liabilities ? `Liabilities Info: ${JSON.stringify(extraContext.liabilities)}` : ""}`;
 
-    const response = await fetch("https://open.bigmodel.cn/api/paas/v4/chat/completions", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-            model: "glm-4.7-flash",
+    try {
+        const content = await callZhipuChat({
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }
             ],
             temperature: 0.7
-        })
-    });
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error("AI Service Error Stats:", response.status, errorText);
-        throw new Error("AI Service temporary unavailable");
-    }
-
-    const data = await response.json();
-    const content = data.choices[0].message.content;
-
-    try {
-        const cleanedJSON = content.replace(/```json|```/g, "").trim();
-        return JSON.parse(cleanedJSON);
+        return extractJson(content);
     } catch (err) {
-        console.error("AI Insights Parsing Error:", content);
+        console.error("AI Insights Error:", err);
         return [
             {
                 title: "Keep Tracking!",

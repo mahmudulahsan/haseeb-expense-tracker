@@ -974,7 +974,11 @@ export async function parseVoiceTransaction(text: string, localDate?: string) {
         return { success: true, aiResult };
     } catch (error: any) {
         console.error("Parse voice error:", error);
-        return { error: error.message || "Failed to parse voice" };
+        let message = error?.message || "Failed to parse voice command";
+        if (message.includes("1305") || message.includes("访问量过大") || message.includes("429")) {
+            message = "AI service is currently experiencing high demand. Please try again in a moment.";
+        }
+        return { error: message };
     }
 }
 

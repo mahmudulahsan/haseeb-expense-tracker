@@ -73,6 +73,13 @@ export async function loginWithPassword(formData: FormData) {
     return { success: true };
 }
 
+export async function demoLogin() {
+    const formData = new FormData();
+    formData.append("email", "shahriyar.wakeup.2026@gmail.com");
+    formData.append("password", "a1b2c3d4");
+    return loginWithPassword(formData);
+}
+
 export async function changePassword(formData: FormData) {
     const session = await getSession();
 

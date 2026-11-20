@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Mail, KeyRound, ArrowRight, Eye, EyeOff } from "lucide-react";
-import { setPassword, loginWithPassword } from "@/app/actions/auth";
+import { Mail, KeyRound, ArrowRight, Eye, EyeOff, Sparkles } from "lucide-react";
+import { setPassword, loginWithPassword, demoLogin } from "@/app/actions/auth";
 import { Logo } from "@/components/shared/logo";
 import Link from "next/link";
 
@@ -111,6 +111,25 @@ export default function LoginPage() {
         } else {
             router.push("/");
             router.refresh();
+        }
+    };
+
+    const handleDemoLogin = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const result = await demoLogin();
+            if (result.error) {
+                setError(result.error);
+                setLoading(false);
+            } else {
+                router.push("/");
+                router.refresh();
+            }
+        } catch (err) {
+            setError("Failed to sign in with demo account.");
+            setLoading(false);
         }
     };
 
@@ -310,6 +329,35 @@ export default function LoginPage() {
                                 </div>
                             </div>
                         </form>
+                    )}
+
+                    {(step === 1 || step === 4) && (
+                        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-white/10">
+                            <div className="relative mb-6">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t border-dashed border-gray-200 dark:border-white/10" />
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-white/90 dark:bg-black/90 px-3 text-muted-foreground font-bold tracking-wider">
+                                        Quick Preview
+                                    </span>
+                                </div>
+                            </div>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={loading}
+                                onClick={handleDemoLogin}
+                                className="w-full h-12 rounded-2xl font-bold bg-amber-500/5 hover:bg-amber-500/10 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/25 hover:border-amber-500/50 transition-all flex items-center justify-center gap-2 group shadow-sm"
+                            >
+                                <Sparkles className="h-4 w-4 text-amber-500 group-hover:scale-125 transition-transform" />
+                                {loading ? "Logging in..." : "Demo Login"}
+                            </Button>
+                            <p className="text-[11px] text-center text-muted-foreground mt-2 font-medium">
+                                One-click access with demo account
+                            </p>
+                        </div>
                     )}
                 </CardContent>
             </Card>
